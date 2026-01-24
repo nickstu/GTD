@@ -17,6 +17,7 @@ import { useCreateItem } from "@/hooks/use-items";
 import { useItems } from "@/hooks/use-items";
 
 const navItems = [
+  { href: "/", icon: Layers, label: "Dashboard", shortcut: "d" },
   { href: "/inbox", icon: Inbox, label: "Inbox", shortcut: "i" },
   { href: "/next-actions", icon: CheckSquare, label: "Next Actions", shortcut: "n" },
   { href: "/projects", icon: Layers, label: "Projects", shortcut: "p" },
@@ -122,7 +123,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
           <button onClick={() => setQuickAddOpen(true)}><Plus className="w-6 h-6" /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 max-w-5xl mx-auto w-full">
+        <div className="flex-1 overflow-y-auto w-full">
           {children}
         </div>
       </main>

@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import { LayoutShell } from "@/components/layout-shell";
 
 // Pages
+import DashboardPage from "@/pages/dashboard";
 import InboxPage from "@/pages/inbox";
 import NextActionsPage from "@/pages/next-actions";
 import ProjectsPage from "@/pages/projects";
@@ -20,6 +21,7 @@ function Router() {
   return (
     <LayoutShell>
       <Switch>
+        <Route path="/" component={DashboardPage} />
         <Route path="/inbox" component={InboxPage} />
         <Route path="/next-actions" component={NextActionsPage} />
         <Route path="/projects" component={ProjectsPage} />
@@ -28,10 +30,6 @@ function Router() {
         <Route path="/review" component={ReviewPage} />
         <Route path="/reference" component={ReferencePage} />
         <Route path="/someday" component={SomedayPage} />
-        
-        <Route path="/">
-          <Redirect to="/inbox" />
-        </Route>
         
         <Route component={NotFound} />
       </Switch>

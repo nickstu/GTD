@@ -22,69 +22,50 @@ export function ItemRow({ item, project, onEdit, showStatus = false }: ItemRowPr
   return (
     <div 
       onClick={() => onEdit?.(item)}
-      className="group flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-border/50"
+      className="group flex items-start gap-2 p-2 rounded hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-border/50 text-sm select-none"
     >
       <button 
         onClick={handleComplete}
         className={clsx(
-          "mt-0.5 w-5 h-5 rounded border flex items-center justify-center transition-all",
+          "mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition-all flex-shrink-0",
           item.status === "done" 
             ? "bg-primary border-primary text-primary-foreground" 
             : "border-muted-foreground/30 hover:border-primary"
         )}
       >
-        {item.status === "done" && <span className="text-xs font-bold">✓</span>}
+        {item.status === "done" && <span className="text-[10px] font-bold">✓</span>}
       </button>
 
-      <div className="flex-1 min-w-0 space-y-1">
-        <div className="flex items-center gap-2">
-          <span className={clsx("font-medium text-sm", item.status === "done" && "line-through text-muted-foreground")}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 overflow-hidden">
+          <span className={clsx("font-medium truncate", item.status === "done" && "line-through text-muted-foreground")}>
             {item.title}
           </span>
-          {showStatus && item.status !== "next" && item.status !== "done" && (
-             <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-               {item.status}
-             </span>
-          )}
         </div>
         
-        {(item.contexts?.length || item.timeEstimate || item.dueDatetime || project || item.notes) && (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        {(item.contexts?.length || item.dueDatetime || project) && (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground mt-0.5">
             {project && (
-              <span className="flex items-center gap-1 text-primary/80 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
+              <span className="flex items-center gap-1 text-primary/80">
+                <span className="w-1 h-1 rounded-full bg-primary/40"></span>
                 {project.name}
               </span>
             )}
             
             {item.contexts?.map(ctx => (
-              <span key={ctx} className="flex items-center gap-1 text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/30 px-1.5 rounded">
-                <Tag className="w-3 h-3" />
+              <span key={ctx} className="bg-muted px-1 rounded truncate max-w-[60px]">
                 {ctx}
               </span>
             ))}
             
-            {item.timeEstimate && (
-              <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {item.timeEstimate}
-              </span>
-            )}
-            
             {item.dueDatetime && (
               <span className={clsx(
                 "flex items-center gap-1", 
-                new Date(item.dueDatetime) < new Date() ? "text-destructive" : "text-amber-600 dark:text-amber-400"
+                new Date(item.dueDatetime) < new Date() ? "text-destructive" : "text-amber-600"
               )}>
-                <Calendar className="w-3 h-3" />
-                {format(new Date(item.dueDatetime), "MMM d, h:mm a")}
+                <Clock className="w-2.5 h-2.5" />
+                {format(new Date(item.dueDatetime), "MMM d")}
               </span>
-            )}
-
-            {item.energyLevel && (
-               <span className="flex items-center gap-1 opacity-70">
-                 ⚡ {item.energyLevel}
-               </span>
             )}
           </div>
         )}
