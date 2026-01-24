@@ -190,6 +190,7 @@ export default function DashboardPage() {
     const activeId = active.id as number;
     const overId = over.id; 
     
+    // 1. Dropping onto a project pane
     if (typeof overId === "string" && overId.startsWith("project-")) {
       const projectId = parseInt(overId.replace("project-", ""));
       const projectItems = items.filter(i => i.projectId === projectId).sort((a,b) => (a.position || 0) - (b.position || 0));
@@ -198,44 +199,48 @@ export default function DashboardPage() {
       return;
     }
 
+    // 2. Dropping onto an item
     const overIdNum = Number(overId);
     const overItem = items.find(i => i.id === overIdNum);
-    if (overItem && overItem.projectId) {
-      const activeItem = items.find(i => i.id === activeId);
-      if (activeItem) {
-        const targetProjectId = overItem.projectId;
-        const sameProject = activeItem.projectId === targetProjectId;
-        
-        if (sameProject) {
-          const projectItems = items
-            .filter(i => i.projectId === targetProjectId)
-            .sort((a, b) => (a.position || 0) - (b.position || 0));
-            
-          const oldIndex = projectItems.findIndex(i => i.id === activeId);
-          const newIndex = projectItems.findIndex(i => i.id === overIdNum);
+    const activeItem = items.find(i => i.id === activeId);
+
+    if (overItem && activeItem) {
+      // Reordering within the same project
+      if (overItem.projectId && activeItem.projectId === overItem.projectId) {
+        const projectId = overItem.projectId;
+        const projectItems = items
+          .filter(i => i.projectId === projectId)
+          .sort((a, b) => (a.position || 0) - (b.position || 0));
           
-          if (oldIndex !== -1 && newIndex !== -1) {
-            const newOrder = arrayMove(projectItems, oldIndex, newIndex);
-            
-            // Perform all updates sequentially to ensure order
-            for (let i = 0; i < newOrder.length; i++) {
-              if (newOrder[i].position !== i) {
-                await updateItem.mutateAsync({ id: newOrder[i].id, position: i });
-              }
-            }
+        const oldIndex = projectItems.findIndex(i => i.id === activeId);
+        const newIndex = projectItems.findIndex(i => i.id === overIdNum);
+        
+        if (oldIndex !== -1 && newIndex !== -1) {
+          const newOrder = arrayMove(projectItems, oldIndex, newIndex);
+          // Sequential updates to avoid race conditions and ensure visual sync
+          for (let i = 0; i < newOrder.length; i++) {
+            await updateItem.mutateAsync({ 
+              id: newOrder[i].id, 
+              position: i,
+              // Ensure status is projects if it wasn't already (though it should be)
+              status: "projects" 
+            });
           }
-        } else {
-          await updateItem.mutateAsync({ 
-            id: activeId, 
-            status: "projects", 
-            projectId: targetProjectId,
-            position: (overItem.position || 0)
-          });
         }
-        return;
+      } 
+      // Moving to a different project by dropping on its item
+      else if (overItem.projectId) {
+        await updateItem.mutateAsync({ 
+          id: activeId, 
+          status: "projects", 
+          projectId: overItem.projectId,
+          position: (overItem.position || 0)
+        });
       }
+      return;
     }
 
+    // 3. Drop into bins
     if (typeof overId === "string" && ["inbox", "someday"].includes(overId)) {
       await updateItem.mutateAsync({ id: activeId, status: overId, projectId: null, position: 0 });
     }
