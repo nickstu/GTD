@@ -129,7 +129,6 @@ export default function DashboardPage() {
   ];
 
   const getItemsByStatus = (status: string) => {
-    if (status === "projects") return []; // Projects handled separately if needed
     if (status === "calendar") return items.filter(i => i.dueDatetime && i.status !== "done");
     return items.filter(i => i.status === status);
   };
