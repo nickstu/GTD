@@ -1,7 +1,7 @@
-import { useItems, useUpdateItem } from "@/hooks/use-items";
-import { useProjects } from "@/hooks/use-projects";
+import { useItems, useUpdateItem, useCreateItem } from "@/hooks/use-items";
+import { useProjects, useCreateProject } from "@/hooks/use-projects";
 import { ItemRow } from "@/components/item-row";
-import { ItemDialog } from "@/components/item-dialog";
+import { ItemDialog, ProjectDialog } from "@/components/item-dialog";
 import { useState } from "react";
 import { Item, Project } from "@shared/schema";
 import { 
@@ -28,17 +28,63 @@ import {
   Layers, 
   Archive, 
   Calendar as CalendarIcon, 
-  Zap 
+  Zap,
+  Plus
 } from "lucide-react";
-import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { 
+  ContextMenu, 
+  ContextMenuContent, 
+  ContextMenuItem, 
+  ContextMenuTrigger 
+} from "@/components/ui/context-menu";
 
 interface BinProps {
   id: string;
   title: string;
   icon: any;
-  items: Item[];
-  onEdit?: (item: Item) => void;
+  children?: React.ReactNode;
   canDrop?: boolean;
+  className?: string;
+}
+
+function Bin({ id, title, icon: Icon, children, canDrop = true, className }: BinProps) {
+  const { setNodeRef } = useDroppable({ id, disabled: !canDrop });
+
+  return (
+    <div ref={setNodeRef} className={`flex flex-col h-[400px] bg-card border rounded-xl overflow-hidden shadow-sm ${className}`}>
+      <div className="p-3 border-b bg-muted/30 flex items-center justify-between">
+        <div className="flex items-center gap-2 font-semibold text-sm">
+          <Icon className="w-4 h-4 text-primary" />
+          {title}
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-2 space-y-2">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ProjectPane({ project, items, onEdit }: { project: Project, items: Item[], onEdit: (item: Item) => void }) {
+  const { setNodeRef } = useDroppable({ id: `project-${project.id}` });
+
+  return (
+    <div ref={setNodeRef} className="border rounded-lg bg-muted/20 p-2 space-y-1">
+      <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1 px-1">
+        {project.name}
+      </div>
+      <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+        {items.map((item) => (
+          <SortableItem key={item.id} item={item} onEdit={onEdit} />
+        ))}
+      </SortableContext>
+      {items.length === 0 && (
+        <div className="text-[10px] text-center py-2 text-muted-foreground/50 italic">Empty Project</div>
+      )}
+    </div>
+  );
 }
 
 function SortableItem({ item, onEdit }: { item: Item; onEdit?: (item: Item) => void }) {
@@ -64,42 +110,21 @@ function SortableItem({ item, onEdit }: { item: Item; onEdit?: (item: Item) => v
   );
 }
 
-function Bin({ id, title, icon: Icon, items, onEdit, canDrop = true }: BinProps) {
-  const { setNodeRef } = useDroppable({ id, disabled: !canDrop });
-
-  return (
-    <div ref={setNodeRef} className="flex flex-col h-[400px] bg-card border rounded-xl overflow-hidden shadow-sm">
-      <div className="p-3 border-b bg-muted/30 flex items-center justify-between">
-        <div className="flex items-center gap-2 font-semibold text-sm">
-          <Icon className="w-4 h-4 text-primary" />
-          {title}
-        </div>
-        <span className="text-xs text-muted-foreground bg-background px-1.5 py-0.5 rounded border">
-          {items.length}
-        </span>
-      </div>
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
-          {items.map((item) => (
-            <SortableItem key={item.id} item={item} onEdit={onEdit} />
-          ))}
-        </SortableContext>
-        {items.length === 0 && (
-          <div className="h-full flex items-center justify-center text-muted-foreground/30 text-xs italic">
-            Empty
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export default function DashboardPage() {
   const { data: items = [], isLoading: itemsLoading } = useItems();
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
   const updateItem = useUpdateItem();
+  const createItem = useCreateItem();
+  const { mutateAsync: createProject } = useCreateProject();
+  
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
+  const [showProjectDialog, setShowProjectDialog] = useState(false);
+  
+  // Quick capture state
+  const [quickTitle, setQuickTitle] = useState("");
+  const [quickDate, setQuickDate] = useState("");
+  const [quickTime, setQuickTime] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -110,9 +135,24 @@ export default function DashboardPage() {
     return <div className="p-8 text-muted-foreground font-sans">Loading dashboard...</div>;
   }
 
+  const handleQuickCapture = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickTitle.trim()) return;
+    
+    await createItem.mutateAsync({
+      title: quickTitle,
+      status: "inbox",
+      dueDatetime: quickDate ? new Date(quickDate) : null,
+      startTime: quickTime || null,
+    });
+    
+    setQuickTitle("");
+    setQuickDate("");
+    setQuickTime("");
+  };
+
   const getInboxItems = () => items.filter(i => i.status === "inbox");
   const getSomedayItems = () => items.filter(i => i.status === "someday");
-  const getProjectItems = () => items.filter(i => i.status === "projects");
   const getCalendarItems = () => {
     return items
       .filter(i => i.dueDatetime)
@@ -148,15 +188,17 @@ export default function DashboardPage() {
 
     const itemId = active.id as number;
     const overId = over.id as string;
-    const item = items.find(i => i.id === itemId);
-    if (!item) return;
+    
+    // Check if dropping into a specific project
+    if (overId.startsWith("project-")) {
+      const projectId = parseInt(overId.replace("project-", ""));
+      updateItem.mutate({ id: itemId, status: "projects", projectId });
+      return;
+    }
 
-    // Disallow dropping into next actions
-    if (overId === "next") return;
-
-    // Handle drops into bins
-    if (["inbox", "someday", "projects"].includes(overId)) {
-      updateItem.mutate({ id: itemId, status: overId });
+    // Drop into bins
+    if (["inbox", "someday"].includes(overId)) {
+      updateItem.mutate({ id: itemId, status: overId, projectId: null });
     }
   };
 
@@ -165,7 +207,7 @@ export default function DashboardPage() {
   return (
     <div className="h-full flex flex-col gap-6 p-6 font-sans">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">GTD BINS</h1>
+        <h1 className="text-2xl font-bold tracking-tight uppercase">GTD</h1>
       </header>
 
       <DndContext 
@@ -175,11 +217,87 @@ export default function DashboardPage() {
         onDragEnd={handleDragEnd}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 flex-1">
-          <Bin id="inbox" title="Inbox" icon={Inbox} items={getInboxItems()} onEdit={setSelectedItem} />
-          <Bin id="next" title="Next Actions" icon={Zap} items={getNextActions()} canDrop={false} />
-          <Bin id="projects" title="Projects" icon={Layers} items={getProjectItems()} onEdit={setSelectedItem} />
-          <Bin id="someday" title="Someday" icon={Archive} items={getSomedayItems()} onEdit={setSelectedItem} />
-          <Bin id="calendar" title="Calendar" icon={CalendarIcon} items={getCalendarItems()} onEdit={setSelectedItem} />
+          {/* INBOX */}
+          <Bin id="inbox" title="Inbox" icon={Inbox}>
+            <form onSubmit={handleQuickCapture} className="space-y-2 mb-4 bg-muted/30 p-2 rounded-lg border">
+              <Input 
+                value={quickTitle} 
+                onChange={e => setQuickTitle(e.target.value)} 
+                placeholder="Quick capture..." 
+                className="h-8 text-xs font-sans"
+              />
+              <div className="flex gap-1">
+                <Input 
+                  type="date" 
+                  value={quickDate} 
+                  onChange={e => setQuickDate(e.target.value)} 
+                  className="h-7 text-[10px] p-1 font-sans"
+                />
+                <Input 
+                  type="time" 
+                  value={quickTime} 
+                  onChange={e => setQuickTime(e.target.value)} 
+                  className="h-7 text-[10px] p-1 font-sans"
+                />
+              </div>
+              <Button type="submit" size="sm" className="w-full h-7 text-xs">Add</Button>
+            </form>
+            <SortableContext items={getInboxItems().map(i => i.id)} strategy={verticalListSortingStrategy}>
+              {getInboxItems().map(item => (
+                <SortableItem key={item.id} item={item} onEdit={setSelectedItem} />
+              ))}
+            </SortableContext>
+          </Bin>
+
+          {/* NEXT ACTIONS */}
+          <Bin id="next" title="Next Actions" icon={Zap} canDrop={false}>
+            {getNextActions().map(item => (
+              <ItemRow key={item.id} item={item} />
+            ))}
+          </Bin>
+
+          {/* PROJECTS */}
+          <ContextMenu>
+            <ContextMenuTrigger className="flex flex-col h-full">
+              <Bin id="projects" title="Projects" icon={Layers} canDrop={false}>
+                {projects.map(project => (
+                  <ProjectPane 
+                    key={project.id} 
+                    project={project} 
+                    items={items.filter(i => i.projectId === project.id)} 
+                    onEdit={setSelectedItem}
+                  />
+                ))}
+                {projects.length === 0 && (
+                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground/30 text-xs italic">
+                    <p>No projects</p>
+                    <p className="text-[10px] mt-1">Right-click to create</p>
+                  </div>
+                )}
+              </Bin>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+              <ContextMenuItem onClick={() => setShowProjectDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" /> New Project
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
+
+          {/* SOMEDAY */}
+          <Bin id="someday" title="Someday" icon={Archive}>
+            <SortableContext items={getSomedayItems().map(i => i.id)} strategy={verticalListSortingStrategy}>
+              {getSomedayItems().map(item => (
+                <SortableItem key={item.id} item={item} onEdit={setSelectedItem} />
+              ))}
+            </SortableContext>
+          </Bin>
+
+          {/* CALENDAR */}
+          <Bin id="calendar" title="Calendar" icon={CalendarIcon} canDrop={false}>
+            {getCalendarItems().map(item => (
+              <ItemRow key={item.id} item={item} onEdit={setSelectedItem} />
+            ))}
+          </Bin>
         </div>
 
         <DragOverlay>
@@ -195,6 +313,11 @@ export default function DashboardPage() {
         item={selectedItem} 
         open={!!selectedItem} 
         onClose={() => setSelectedItem(null)} 
+      />
+
+      <ProjectDialog 
+        open={showProjectDialog} 
+        onClose={() => setShowProjectDialog(false)} 
       />
     </div>
   );

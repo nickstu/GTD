@@ -2,11 +2,10 @@ import { Item, Project } from "@shared/schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useUpdateItem, useDeleteItem } from "@/hooks/use-items";
-import { useProjects } from "@/hooks/use-projects";
+import { useProjects, useCreateProject } from "@/hooks/use-projects";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ItemDialogProps {
@@ -118,6 +117,36 @@ export function ItemDialog({ item, open, onClose }: ItemDialogProps) {
             <Button variant="outline" onClick={onClose}>Cancel</Button>
             <Button onClick={handleSave}>Save</Button>
           </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function ProjectDialog({ open, onClose }: { open: boolean, onClose: () => void }) {
+  const [name, setName] = useState("");
+  const createProject = useCreateProject();
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    await createProject.mutateAsync({ name });
+    setName("");
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md font-sans">
+        <DialogHeader><DialogTitle>New Project</DialogTitle></DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label>Project Name</Label>
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Name your project..." />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSave}>Create</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
