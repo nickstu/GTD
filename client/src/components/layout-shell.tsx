@@ -29,20 +29,16 @@ const navItems = [
 ];
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddText, setQuickAddText] = useState("");
   const createItem = useCreateItem();
-  const { data: items } = useItems();
-
-  const inboxCount = items?.filter(i => i.status === "inbox").length || 0;
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       
-      if (e.key === "q") {
+      if (e.key === "q" || e.key === "c") {
         e.preventDefault();
         setQuickAddOpen(true);
       }
@@ -65,64 +61,9 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-64 border-r bg-card flex flex-col hidden md:flex">
-        <div className="p-6">
-          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-            <span className="w-6 h-6 bg-primary rounded-md"></span>
-            GTD Focus
-          </h1>
-        </div>
-
-        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = location === item.href;
-            return (
-              <Link key={item.href} href={item.href}>
-                <div 
-                  className={`
-                    flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer group
-                    ${isActive 
-                      ? "bg-primary/10 text-primary" 
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    }
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    <item.icon className="w-4 h-4" />
-                    {item.label}
-                  </div>
-                  {item.label === "Inbox" && inboxCount > 0 && (
-                    <span className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
-                      {inboxCount}
-                    </span>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-4 border-t">
-          <button 
-            onClick={() => setQuickAddOpen(true)}
-            className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
-          >
-            <Plus className="w-4 h-4" />
-            Quick Capture <kbd className="hidden lg:inline text-[10px] bg-primary-foreground/20 px-1.5 rounded ml-1">Q</kbd>
-          </button>
-        </div>
-      </aside>
-
+    <div className="flex h-screen bg-background overflow-hidden font-sans">
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        {/* Mobile Header */}
-        <div className="md:hidden flex items-center justify-between p-4 border-b bg-card">
-          <span className="font-bold">GTD Focus</span>
-          <button onClick={() => setQuickAddOpen(true)}><Plus className="w-6 h-6" /></button>
-        </div>
-
         <div className="flex-1 overflow-y-auto w-full">
           {children}
         </div>
@@ -137,7 +78,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
                 autoFocus
                 type="text"
                 placeholder="What's on your mind?"
-                className="w-full px-4 py-4 text-lg bg-transparent border-none outline-none placeholder:text-muted-foreground/50"
+                className="w-full px-4 py-4 text-lg bg-transparent border-none outline-none placeholder:text-muted-foreground/50 font-sans"
                 value={quickAddText}
                 onChange={(e) => setQuickAddText(e.target.value)}
                 onBlur={() => !quickAddText && setQuickAddOpen(false)}
@@ -145,7 +86,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
                   if (e.key === "Escape") setQuickAddOpen(false);
                 }}
               />
-              <div className="px-4 py-2 flex justify-between items-center border-t bg-muted/30 text-xs text-muted-foreground rounded-b-lg">
+              <div className="px-4 py-2 flex justify-between items-center border-t bg-muted/30 text-xs text-muted-foreground rounded-b-lg font-sans">
                 <span>Capture to Inbox</span>
                 <div className="flex gap-2">
                   <span className="bg-background border px-1.5 py-0.5 rounded shadow-sm">Enter</span> to save

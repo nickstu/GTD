@@ -43,7 +43,7 @@ export function ItemRow({ item, project, onEdit, showStatus = false }: ItemRowPr
           </span>
         </div>
         
-        {(item.contexts?.length || item.dueDatetime || project) && (
+        {(item.dueDatetime || project) && (
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground mt-0.5">
             {project && (
               <span className="flex items-center gap-1 text-primary/80">
@@ -51,12 +51,6 @@ export function ItemRow({ item, project, onEdit, showStatus = false }: ItemRowPr
                 {project.name}
               </span>
             )}
-            
-            {item.contexts?.map(ctx => (
-              <span key={ctx} className="bg-muted px-1 rounded truncate max-w-[60px]">
-                {ctx}
-              </span>
-            ))}
             
             {item.dueDatetime && (
               <span className={clsx(

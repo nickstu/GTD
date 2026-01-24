@@ -111,7 +111,7 @@ export default function DashboardPage() {
   );
 
   if (itemsLoading || projectsLoading) {
-    return <div className="p-8 text-muted-foreground font-mono">Loading dashboard...</div>;
+    return <div className="p-8 text-muted-foreground font-sans">Loading dashboard...</div>;
   }
 
   const bins = [
@@ -153,11 +153,11 @@ export default function DashboardPage() {
   const activeItem = items.find(i => i.id === activeId);
 
   return (
-    <div className="h-full flex flex-col gap-6 p-4 font-mono">
+    <div className="h-full flex flex-col gap-6 p-6 font-sans">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tighter">GTD BINS</h1>
+        <h1 className="text-2xl font-bold tracking-tight">GTD BINS</h1>
         <div className="text-xs text-muted-foreground">
-          Drag to organize • <kbd className="bg-muted px-1 rounded border">Q</kbd> Quick Capture
+          Drag to organize • <kbd className="bg-muted px-1 rounded border">C</kbd> Capture
         </div>
       </header>
 
@@ -167,7 +167,7 @@ export default function DashboardPage() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 flex-1">
           {bins.map((bin) => (
             <Bin 
               key={bin.id}
@@ -182,7 +182,7 @@ export default function DashboardPage() {
 
         <DragOverlay>
           {activeItem ? (
-            <div className="bg-card border rounded shadow-xl p-2 opacity-80 scale-105 pointer-events-none">
+            <div className="bg-card border rounded shadow-xl p-2 opacity-80 scale-105 pointer-events-none font-sans">
               <ItemRow item={activeItem} />
             </div>
           ) : null}

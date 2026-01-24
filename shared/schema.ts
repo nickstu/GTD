@@ -19,7 +19,6 @@ export const items = pgTable("items", {
   notes: text("notes"),
   status: text("status").notNull().default("inbox"), // inbox, next, waiting, someday, reference, done, trash
   projectId: integer("project_id").references(() => projects.id),
-  contexts: text("contexts").array(), // e.g. ["@calls", "@home"]
   timeEstimate: text("time_estimate"), // e.g. "5m", "1h"
   energyLevel: text("energy_level"), // low, medium, high
   dueDatetime: timestamp("due_datetime"), // For calendar items ONLY
