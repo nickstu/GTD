@@ -187,10 +187,10 @@ export default function DashboardPage() {
     if (!over) return;
 
     const activeId = active.id as number;
-    const overId = over.id as string;
+    const overId = over.id; // Could be string or number
     
     // 1. Dropping onto a project pane
-    if (overId.startsWith("project-")) {
+    if (typeof overId === "string" && overId.startsWith("project-")) {
       const projectId = parseInt(overId.replace("project-", ""));
       const projectItems = items.filter(i => i.projectId === projectId).sort((a,b) => (a.position || 0) - (b.position || 0));
       const maxPos = projectItems.length > 0 ? Math.max(...projectItems.map(i => i.position || 0)) : -1;
@@ -199,7 +199,8 @@ export default function DashboardPage() {
     }
 
     // 2. Dropping onto an item for reordering within the same project or moving to another
-    const overItem = items.find(i => i.id === Number(overId));
+    const overIdNum = Number(overId);
+    const overItem = items.find(i => i.id === overIdNum);
     if (overItem && overItem.projectId) {
       const activeItem = items.find(i => i.id === activeId);
       if (activeItem) {
@@ -208,14 +209,14 @@ export default function DashboardPage() {
           id: activeId, 
           status: "projects", 
           projectId: overItem.projectId,
-          position: (overItem.position || 0) // Simple insert before logic
+          position: (overItem.position || 0)
         });
         return;
       }
     }
 
     // 3. Drop into bins
-    if (["inbox", "someday"].includes(overId)) {
+    if (typeof overId === "string" && ["inbox", "someday"].includes(overId)) {
       updateItem.mutate({ id: activeId, status: overId, projectId: null, position: 0 });
     }
   };
