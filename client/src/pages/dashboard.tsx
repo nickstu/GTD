@@ -186,19 +186,37 @@ export default function DashboardPage() {
     setActiveId(null);
     if (!over) return;
 
-    const itemId = active.id as number;
+    const activeId = active.id as number;
     const overId = over.id as string;
     
-    // Check if dropping into a specific project
+    // 1. Dropping onto a project pane
     if (overId.startsWith("project-")) {
       const projectId = parseInt(overId.replace("project-", ""));
-      updateItem.mutate({ id: itemId, status: "projects", projectId });
+      const projectItems = items.filter(i => i.projectId === projectId).sort((a,b) => (a.position || 0) - (b.position || 0));
+      const maxPos = projectItems.length > 0 ? Math.max(...projectItems.map(i => i.position || 0)) : -1;
+      updateItem.mutate({ id: activeId, status: "projects", projectId, position: maxPos + 1 });
       return;
     }
 
-    // Drop into bins
+    // 2. Dropping onto an item for reordering within the same project or moving to another
+    const overItem = items.find(i => i.id === Number(overId));
+    if (overItem && overItem.projectId) {
+      const activeItem = items.find(i => i.id === activeId);
+      if (activeItem) {
+        // If moving to a project (same or different)
+        updateItem.mutate({ 
+          id: activeId, 
+          status: "projects", 
+          projectId: overItem.projectId,
+          position: (overItem.position || 0) // Simple insert before logic
+        });
+        return;
+      }
+    }
+
+    // 3. Drop into bins
     if (["inbox", "someday"].includes(overId)) {
-      updateItem.mutate({ id: itemId, status: overId, projectId: null });
+      updateItem.mutate({ id: activeId, status: overId, projectId: null, position: 0 });
     }
   };
 
