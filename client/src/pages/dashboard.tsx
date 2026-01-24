@@ -222,8 +222,8 @@ export default function DashboardPage() {
             await updateItem.mutateAsync({ 
               id: newOrder[i].id, 
               position: i,
-              // Ensure status is projects if it wasn't already (though it should be)
-              status: "projects" 
+              status: "projects",
+              projectId: projectId
             });
           }
         }
@@ -308,7 +308,10 @@ export default function DashboardPage() {
                   <ProjectPane 
                     key={project.id} 
                     project={project} 
-                    items={items.filter(i => i.projectId === project.id)} 
+                    items={items
+                      .filter(i => i.projectId === project.id && i.status === "projects")
+                      .sort((a, b) => (a.position || 0) - (b.position || 0))
+                    } 
                     onEdit={setSelectedItem}
                   />
                 ))}
