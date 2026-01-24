@@ -13,7 +13,8 @@ import {
   useSensor, 
   useSensors,
   DragStartEvent,
-  DragEndEvent
+  DragEndEvent,
+  useDroppable
 } from "@dnd-kit/core";
 import { 
   arrayMove, 
@@ -67,8 +68,10 @@ function SortableItem({ item, onEdit }: { item: Item; onEdit: (item: Item) => vo
 }
 
 function Bin({ id, title, icon: Icon, items, onEdit }: BinProps) {
+  const { setNodeRef } = useDroppable({ id });
+
   return (
-    <div className="flex flex-col h-[400px] bg-card border rounded-xl overflow-hidden shadow-sm">
+    <div ref={setNodeRef} className="flex flex-col h-[400px] bg-card border rounded-xl overflow-hidden shadow-sm">
       <div className="p-3 border-b bg-muted/30 flex items-center justify-between">
         <div className="flex items-center gap-2 font-semibold text-sm">
           <Icon className="w-4 h-4 text-primary" />

@@ -32,8 +32,7 @@ export function useCreateItem() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: CreateItemRequest) => {
-      // Validate with shared schema before sending if possible, or just send
+    mutationFn: async (data: any) => {
       const res = await fetch(api.items.create.path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -42,13 +41,9 @@ export function useCreateItem() {
       });
 
       if (!res.ok) {
-        if (res.status === 400) {
-          const error = api.items.create.responses[400].parse(await res.json());
-          throw new Error(error.message);
-        }
         throw new Error("Failed to create item");
       }
-      return api.items.create.responses[201].parse(await res.json());
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.items.list.path] });
@@ -65,7 +60,7 @@ export function useUpdateItem() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: number } & UpdateItemRequest) => {
+    mutationFn: async ({ id, ...updates }: { id: number } & any) => {
       const url = buildUrl(api.items.update.path, { id });
       const res = await fetch(url, {
         method: "PUT",
@@ -77,7 +72,7 @@ export function useUpdateItem() {
       if (!res.ok) {
         throw new Error("Failed to update item");
       }
-      return api.items.update.responses[200].parse(await res.json());
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.items.list.path] });
