@@ -17,7 +17,6 @@ import {
   useDroppable
 } from "@dnd-kit/core";
 import { 
-  arrayMove, 
   SortableContext, 
   sortableKeyboardCoordinates, 
   verticalListSortingStrategy,
@@ -26,25 +25,23 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { 
   Inbox, 
-  CheckSquare, 
   Layers, 
-  Clock, 
   Archive, 
-  BookOpen, 
   Calendar as CalendarIcon, 
-  CheckCircle2 
+  Zap 
 } from "lucide-react";
+import { format } from "date-fns";
 
 interface BinProps {
   id: string;
   title: string;
   icon: any;
   items: Item[];
-  projects?: Project[];
-  onEdit: (item: Item) => void;
+  onEdit?: (item: Item) => void;
+  canDrop?: boolean;
 }
 
-function SortableItem({ item, onEdit }: { item: Item; onEdit: (item: Item) => void }) {
+function SortableItem({ item, onEdit }: { item: Item; onEdit?: (item: Item) => void }) {
   const {
     attributes,
     listeners,
@@ -52,7 +49,7 @@ function SortableItem({ item, onEdit }: { item: Item; onEdit: (item: Item) => vo
     transform,
     transition,
     isDragging
-  } = useSortable({ id: item.id });
+  } = useSortable({ id: item.id, disabled: !onEdit });
 
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -67,8 +64,8 @@ function SortableItem({ item, onEdit }: { item: Item; onEdit: (item: Item) => vo
   );
 }
 
-function Bin({ id, title, icon: Icon, items, onEdit }: BinProps) {
-  const { setNodeRef } = useDroppable({ id });
+function Bin({ id, title, icon: Icon, items, onEdit, canDrop = true }: BinProps) {
+  const { setNodeRef } = useDroppable({ id, disabled: !canDrop });
 
   return (
     <div ref={setNodeRef} className="flex flex-col h-[400px] bg-card border rounded-xl overflow-hidden shadow-sm">
@@ -105,32 +102,39 @@ export default function DashboardPage() {
   const [activeId, setActiveId] = useState<number | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 }
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   if (itemsLoading || projectsLoading) {
     return <div className="p-8 text-muted-foreground font-sans">Loading dashboard...</div>;
   }
 
-  const bins = [
-    { id: "inbox", title: "Inbox", icon: Inbox },
-    { id: "next", title: "Next Actions", icon: CheckSquare },
-    { id: "projects", title: "Projects", icon: Layers },
-    { id: "waiting", title: "Waiting For", icon: Clock },
-    { id: "someday", title: "Someday/Maybe", icon: Archive },
-    { id: "reference", title: "Reference", icon: BookOpen },
-    { id: "calendar", title: "Calendar", icon: CalendarIcon },
-    { id: "done", title: "Done", icon: CheckCircle2 },
-  ];
+  const getInboxItems = () => items.filter(i => i.status === "inbox");
+  const getSomedayItems = () => items.filter(i => i.status === "someday");
+  const getProjectItems = () => items.filter(i => i.status === "projects");
+  const getCalendarItems = () => {
+    return items
+      .filter(i => i.dueDatetime)
+      .sort((a, b) => {
+        const dateA = new Date(a.dueDatetime!).getTime();
+        const dateB = new Date(b.dueDatetime!).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+        return (a.startTime || "").localeCompare(b.startTime || "");
+      });
+  };
 
-  const getItemsByStatus = (status: string) => {
-    if (status === "calendar") return items.filter(i => i.dueDatetime && i.status !== "done");
-    return items.filter(i => i.status === status);
+  const getNextActions = () => {
+    const nextActions: Item[] = [];
+    projects.forEach(project => {
+      const projectItems = items
+        .filter(i => i.projectId === project.id && i.status === "projects")
+        .sort((a, b) => (a.position || 0) - (b.position || 0));
+      if (projectItems.length > 0) {
+        nextActions.push(projectItems[0]);
+      }
+    });
+    return nextActions;
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -140,15 +144,19 @@ export default function DashboardPage() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
-
     if (!over) return;
 
     const itemId = active.id as number;
     const overId = over.id as string;
+    const item = items.find(i => i.id === itemId);
+    if (!item) return;
 
-    // Check if dragged over a bin
-    if (bins.some(b => b.id === overId)) {
-      updateItem.mutate({ id: itemId, status: overId as any });
+    // Disallow dropping into next actions
+    if (overId === "next") return;
+
+    // Handle drops into bins
+    if (["inbox", "someday", "projects"].includes(overId)) {
+      updateItem.mutate({ id: itemId, status: overId });
     }
   };
 
@@ -158,9 +166,6 @@ export default function DashboardPage() {
     <div className="h-full flex flex-col gap-6 p-6 font-sans">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">GTD BINS</h1>
-        <div className="text-xs text-muted-foreground">
-          Drag to organize • <kbd className="bg-muted px-1 rounded border">C</kbd> Capture
-        </div>
       </header>
 
       <DndContext 
@@ -169,17 +174,12 @@ export default function DashboardPage() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 flex-1">
-          {bins.map((bin) => (
-            <Bin 
-              key={bin.id}
-              id={bin.id}
-              title={bin.title}
-              icon={bin.icon}
-              items={getItemsByStatus(bin.id)}
-              onEdit={setSelectedItem}
-            />
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 flex-1">
+          <Bin id="inbox" title="Inbox" icon={Inbox} items={getInboxItems()} onEdit={setSelectedItem} />
+          <Bin id="next" title="Next Actions" icon={Zap} items={getNextActions()} canDrop={false} />
+          <Bin id="projects" title="Projects" icon={Layers} items={getProjectItems()} onEdit={setSelectedItem} />
+          <Bin id="someday" title="Someday" icon={Archive} items={getSomedayItems()} onEdit={setSelectedItem} />
+          <Bin id="calendar" title="Calendar" icon={CalendarIcon} items={getCalendarItems()} onEdit={setSelectedItem} />
         </div>
 
         <DragOverlay>
@@ -195,7 +195,6 @@ export default function DashboardPage() {
         item={selectedItem} 
         open={!!selectedItem} 
         onClose={() => setSelectedItem(null)} 
-        mode={selectedItem?.status === "inbox" ? "process" : "edit"}
       />
     </div>
   );
