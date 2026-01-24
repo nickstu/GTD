@@ -17,6 +17,7 @@ import {
   useDroppable
 } from "@dnd-kit/core";
 import { 
+  arrayMove,
   SortableContext, 
   sortableKeyboardCoordinates, 
   verticalListSortingStrategy,
@@ -204,13 +205,36 @@ export default function DashboardPage() {
     if (overItem && overItem.projectId) {
       const activeItem = items.find(i => i.id === activeId);
       if (activeItem) {
-        // If moving to a project (same or different)
-        updateItem.mutate({ 
-          id: activeId, 
-          status: "projects", 
-          projectId: overItem.projectId,
-          position: (overItem.position || 0)
-        });
+        const targetProjectId = overItem.projectId;
+        const sameProject = activeItem.projectId === targetProjectId;
+        
+        if (sameProject) {
+          // Reorder within project
+          const projectItems = items
+            .filter(i => i.projectId === targetProjectId)
+            .sort((a, b) => (a.position || 0) - (b.position || 0));
+            
+          const oldIndex = projectItems.findIndex(i => i.id === activeId);
+          const newIndex = projectItems.findIndex(i => i.id === overIdNum);
+          
+          if (oldIndex !== -1 && newIndex !== -1) {
+            const newOrder = arrayMove(projectItems, oldIndex, newIndex);
+            // Update all items in this project with new positions
+            newOrder.forEach((item, index) => {
+              if (item.position !== index) {
+                updateItem.mutate({ id: item.id, position: index });
+              }
+            });
+          }
+        } else {
+          // Move to a different project
+          updateItem.mutate({ 
+            id: activeId, 
+            status: "projects", 
+            projectId: targetProjectId,
+            position: (overItem.position || 0)
+          });
+        }
         return;
       }
     }
