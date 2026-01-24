@@ -182,24 +182,22 @@ export default function DashboardPage() {
     setActiveId(event.active.id as number);
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
     if (!over) return;
 
     const activeId = active.id as number;
-    const overId = over.id; // Could be string or number
+    const overId = over.id; 
     
-    // 1. Dropping onto a project pane
     if (typeof overId === "string" && overId.startsWith("project-")) {
       const projectId = parseInt(overId.replace("project-", ""));
       const projectItems = items.filter(i => i.projectId === projectId).sort((a,b) => (a.position || 0) - (b.position || 0));
       const maxPos = projectItems.length > 0 ? Math.max(...projectItems.map(i => i.position || 0)) : -1;
-      updateItem.mutate({ id: activeId, status: "projects", projectId, position: maxPos + 1 });
+      await updateItem.mutateAsync({ id: activeId, status: "projects", projectId, position: maxPos + 1 });
       return;
     }
 
-    // 2. Dropping onto an item for reordering within the same project or moving to another
     const overIdNum = Number(overId);
     const overItem = items.find(i => i.id === overIdNum);
     if (overItem && overItem.projectId) {
@@ -209,7 +207,6 @@ export default function DashboardPage() {
         const sameProject = activeItem.projectId === targetProjectId;
         
         if (sameProject) {
-          // Reorder within project
           const projectItems = items
             .filter(i => i.projectId === targetProjectId)
             .sort((a, b) => (a.position || 0) - (b.position || 0));
@@ -219,16 +216,16 @@ export default function DashboardPage() {
           
           if (oldIndex !== -1 && newIndex !== -1) {
             const newOrder = arrayMove(projectItems, oldIndex, newIndex);
-            // Update all items in this project with new positions
-            newOrder.forEach((item, index) => {
-              if (item.position !== index) {
-                updateItem.mutate({ id: item.id, position: index });
+            
+            // Perform all updates sequentially to ensure order
+            for (let i = 0; i < newOrder.length; i++) {
+              if (newOrder[i].position !== i) {
+                await updateItem.mutateAsync({ id: newOrder[i].id, position: i });
               }
-            });
+            }
           }
         } else {
-          // Move to a different project
-          updateItem.mutate({ 
+          await updateItem.mutateAsync({ 
             id: activeId, 
             status: "projects", 
             projectId: targetProjectId,
@@ -239,9 +236,8 @@ export default function DashboardPage() {
       }
     }
 
-    // 3. Drop into bins
     if (typeof overId === "string" && ["inbox", "someday"].includes(overId)) {
-      updateItem.mutate({ id: activeId, status: overId, projectId: null, position: 0 });
+      await updateItem.mutateAsync({ id: activeId, status: overId, projectId: null, position: 0 });
     }
   };
 
