@@ -217,17 +217,43 @@
         }
         
         #appContent.show {
-            display: block;
+            display: flex;
         }
         
-        .grid-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 16px; flex: 0 0 50%; min-height: 0; }
+        .grid-row { 
+            display: grid; 
+            grid-template-columns: repeat(5, 1fr); 
+            grid-template-rows: 100%;
+            gap: 16px; 
+            margin-bottom: 16px; 
+            flex: 0 0 50%; 
+            min-height: 0; 
+        }
         .projects-row { 
             display: flex; 
             gap: 16px; 
-            overflow-x: auto; 
+            overflow-x: scroll; 
             padding: 8px 8px 10px 8px;
             flex: 1;
             min-height: 0;
+        }
+        
+        .projects-row::-webkit-scrollbar {
+            height: 8px;
+        }
+        
+        .projects-row::-webkit-scrollbar-track {
+            background: #1a1d24;
+            border-radius: 4px;
+        }
+        
+        .projects-row::-webkit-scrollbar-thumb {
+            background: #3a3f4b;
+            border-radius: 4px;
+        }
+        
+        .projects-row::-webkit-scrollbar-thumb:hover {
+            background: #4a4f5b;
         }
         
         .projects-wrapper {
@@ -262,9 +288,27 @@
         
         .pane-content {
             flex: 1;
-            overflow-y: auto;
+            overflow-y: scroll;
             padding: 8px;
             min-height: 0;
+        }
+        
+        .pane-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .pane-content::-webkit-scrollbar-track {
+            background: #1a1d24;
+            border-radius: 4px;
+        }
+        
+        .pane-content::-webkit-scrollbar-thumb {
+            background: #3a3f4b;
+            border-radius: 4px;
+        }
+        
+        .pane-content::-webkit-scrollbar-thumb:hover {
+            background: #4a4f5b;
         }
         
         .item {
@@ -425,9 +469,27 @@
         
         .project-items {
             flex: 1;
-            overflow-y: auto;
+            overflow-y: scroll;
             overflow-x: hidden;
             min-height: 0;
+        }
+        
+        .project-items::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .project-items::-webkit-scrollbar-track {
+            background: #1a1d24;
+            border-radius: 4px;
+        }
+        
+        .project-items::-webkit-scrollbar-thumb {
+            background: #3a3f4b;
+            border-radius: 4px;
+        }
+        
+        .project-items::-webkit-scrollbar-thumb:hover {
+            background: #4a4f5b;
         }
         
         .project-header:hover {
