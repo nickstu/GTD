@@ -470,16 +470,18 @@
             width: 4px;
             background: #0d6efd;
             border-radius: 2px;
+            box-shadow: 0 0 8px rgba(13, 110, 253, 0.6);
+            animation: pulse 0.6s ease-in-out infinite;
             pointer-events: none;
             z-index: 100;
         }
         
         .project-pane-insert-indicator.before {
-            left: -8px;
+            left: 0;
         }
         
         .project-pane-insert-indicator.after {
-            right: -8px;
+            right: 0;
         }
         
         .project-header {
@@ -781,8 +783,8 @@
             
             .project-pane-insert-indicator.before {
                 left: 0;
-                right: 0;
-                top: -8px;
+                right: auto;
+                top: 0;
                 bottom: auto;
                 width: 100%;
                 height: 4px;
@@ -790,9 +792,9 @@
             
             .project-pane-insert-indicator.after {
                 left: 0;
-                right: 0;
+                right: auto;
                 top: auto;
-                bottom: -8px;
+                bottom: 0;
                 width: 100%;
                 height: 4px;
             }
