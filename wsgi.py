@@ -1535,6 +1535,27 @@ def application(environ, start_response):
             start_response(status, headers)
             return [json.dumps(response).encode('utf-8')]
         
+        elif path == '/api/admin/list-users':
+            username = get_session_username(environ)
+            if not username:
+                status = '401 Unauthorized'
+                headers = [('Content-type', 'application/json')]
+                start_response(status, headers)
+                return [json.dumps({"error": "Not authenticated"}).encode('utf-8')]
+            
+            users = load_users()
+            if not users.get(username, {}).get('isAdmin', False):
+                status = '403 Forbidden'
+                headers = [('Content-type', 'application/json')]
+                start_response(status, headers)
+                return [json.dumps({"error": "Admin access required"}).encode('utf-8')]
+            
+            user_list = [{"username": u, "isAdmin": data.get('isAdmin', False)} for u, data in users.items()]
+            status = '200 OK'
+            headers = [('Content-type', 'application/json')]
+            start_response(status, headers)
+            return [json.dumps({"users": user_list}).encode('utf-8')]
+        
         elif path == '/api/admin/delete-user':
             username = get_session_username(environ)
             if not username:
@@ -1565,12 +1586,157 @@ def application(environ, start_response):
                 if os.path.exists(data_file):
                     os.remove(data_file)
                 
-                response = {"success": True}
+                response = {"success": True, "message": f"User '{delete_username}' deleted"}
             
             status = '200 OK'
             headers = [('Content-type', 'application/json')]
             start_response(status, headers)
             return [json.dumps(response).encode('utf-8')]
+        
+        elif path == '/api/items':
+            username = get_session_username(environ)
+            if not username:
+                status = '401 Unauthorized'
+                headers = [('Content-type', 'application/json')]
+                start_response(status, headers)
+                return [json.dumps({"error": "Not authenticated"}).encode('utf-8')]
+            
+            data = load_data(username)
+            item = {
+                'title': req_data.get('title', ''),
+                'notes': req_data.get('notes'),
+                'status': req_data.get('status', 'inbox'),
+                'projectId': req_data.get('projectId'),
+                'startTime': req_data.get('startTime'),
+                'dueDatetime': req_data.get('dueDatetime'),
+                'position': req_data.get('position', 0),
+                'id': data['nextItemId'],
+                'createdAt': datetime.now().isoformat()
+            }
+            data['items'].append(item)
+            data['nextItemId'] += 1
+            save_data(username, data)
+            
+            status = '200 OK'
+            headers = [('Content-type', 'application/json')]
+            start_response(status, headers)
+            return [json.dumps(item).encode('utf-8')]
+        
+        elif path == '/api/projects':
+            username = get_session_username(environ)
+            if not username:
+                status = '401 Unauthorized'
+                headers = [('Content-type', 'application/json')]
+                start_response(status, headers)
+                return [json.dumps({"error": "Not authenticated"}).encode('utf-8')]
+            
+            data = load_data(username)
+            project = {
+                'name': req_data.get('name', ''),
+                'outcome': req_data.get('outcome'),
+                'status': req_data.get('status', 'active'),
+                'id': data['nextProjectId'],
+                'createdAt': datetime.now().isoformat()
+            }
+            data['projects'].append(project)
+            data['nextProjectId'] += 1
+            save_data(username, data)
+            
+            status = '200 OK'
+            headers = [('Content-type', 'application/json')]
+            start_response(status, headers)
+            return [json.dumps(project).encode('utf-8')]
+    
+    # Handle PUT requests
+    elif method == 'PUT':
+        path_parts = path.split('/')
+        if len(path_parts) < 4:
+            status = '400 Bad Request'
+            headers = [('Content-type', 'text/plain')]
+            start_response(status, headers)
+            return [b'Bad Request']
+        
+        username = get_session_username(environ)
+        if not username:
+            status = '401 Unauthorized'
+            headers = [('Content-type', 'application/json')]
+            start_response(status, headers)
+            return [json.dumps({"error": "Not authenticated"}).encode('utf-8')]
+        
+        content_length = int(environ.get('CONTENT_LENGTH', 0))
+        body = environ['wsgi.input'].read(content_length)
+        updates = json.loads(body) if body else {}
+        
+        data = load_data(username)
+        item_id = int(path_parts[3])
+        
+        if path_parts[2] == 'items':
+            for i, item in enumerate(data['items']):
+                if item['id'] == item_id:
+                    data['items'][i].update(updates)
+                    save_data(username, data)
+                    status = '200 OK'
+                    headers = [('Content-type', 'application/json')]
+                    start_response(status, headers)
+                    return [json.dumps(data['items'][i]).encode('utf-8')]
+        elif path_parts[2] == 'projects':
+            for i, project in enumerate(data['projects']):
+                if project['id'] == item_id:
+                    data['projects'][i].update(updates)
+                    save_data(username, data)
+                    status = '200 OK'
+                    headers = [('Content-type', 'application/json')]
+                    start_response(status, headers)
+                    return [json.dumps(data['projects'][i]).encode('utf-8')]
+        
+        status = '404 Not Found'
+        headers = [('Content-type', 'text/plain')]
+        start_response(status, headers)
+        return [b'Not Found']
+    
+    # Handle DELETE requests
+    elif method == 'DELETE':
+        path_parts = path.split('/')
+        if len(path_parts) < 4:
+            status = '400 Bad Request'
+            headers = [('Content-type', 'text/plain')]
+            start_response(status, headers)
+            return [b'Bad Request']
+        
+        username = get_session_username(environ)
+        if not username:
+            status = '401 Unauthorized'
+            headers = [('Content-type', 'application/json')]
+            start_response(status, headers)
+            return [json.dumps({"error": "Not authenticated"}).encode('utf-8')]
+        
+        data = load_data(username)
+        item_id = int(path_parts[3])
+        
+        if path_parts[2] == 'items':
+            data['items'] = [i for i in data['items'] if i['id'] != item_id]
+            save_data(username, data)
+            status = '204 No Content'
+            headers = []
+            start_response(status, headers)
+            return [b'']
+        elif path_parts[2] == 'projects':
+            data['projects'] = [p for p in data['projects'] if p['id'] != item_id]
+            # Remove project reference from items
+            for item in data['items']:
+                if item.get('projectId') == item_id:
+                    item['projectId'] = None
+                    item['status'] = 'inbox'
+            save_data(username, data)
+            status = '204 No Content'
+            headers = []
+            start_response(status, headers)
+            return [b'']
+        
+        status = '404 Not Found'
+        headers = [('Content-type', 'text/plain')]
+        start_response(status, headers)
+        return [b'Not Found']
     
     # 404 for unknown routes
     status = '404 Not Found'
