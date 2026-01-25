@@ -1455,6 +1455,8 @@ def application(environ, start_response):
                     session_id = secrets.token_hex(16)
                     sessions[session_id] = username
                     
+                    is_admin = users[username].get('isAdmin', False)
+                    
                     status = '200 OK'
                     cookie = SimpleCookie()
                     cookie['session_id'] = session_id
@@ -1466,7 +1468,7 @@ def application(environ, start_response):
                         ('Set-Cookie', cookie['session_id'].OutputString())
                     ]
                     start_response(status, headers)
-                    return [json.dumps({"success": True}).encode('utf-8')]
+                    return [json.dumps({"success": True, "username": username, "isAdmin": is_admin}).encode('utf-8')]
                 else:
                     response = {"success": False, "message": "Invalid credentials"}
             
