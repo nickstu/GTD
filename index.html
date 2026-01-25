@@ -1,340 +1,4 @@
-#!/usr/bin/env python3
-"""GTD Task Manager - Python Implementation"""
-import json
-import os
-from datetime import datetime
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse
-import webbrowser
-from http.cookies import SimpleCookie
-import secrets
-
-USERS_FILE = "users.json"
-sessions = {}  # session_id -> username
-
-def load_users():
-    if os.path.exists(USERS_FILE):
-        with open(USERS_FILE, 'r') as f:
-            users = json.load(f)
-        # Ensure admin account always exists
-        if 'admin' not in users:
-            users['admin'] = {"password": "admin", "isAdmin": True}
-            save_users(users)
-        return users
-    # Create default admin account
-    default_users = {"admin": {"password": "admin", "isAdmin": True}}
-    save_users(default_users)
-    return default_users
-
-def save_users(users):
-    with open(USERS_FILE, 'w') as f:
-        json.dump(users, f, indent=2)
-
-def get_data_file(username):
-    return f"data_{username}.json"
-
-def load_data(username):
-    data_file = get_data_file(username)
-    if os.path.exists(data_file):
-        with open(data_file, 'r') as f:
-            return json.load(f)
-    return {"projects": [], "items": [], "nextProjectId": 1, "nextItemId": 1}
-
-def save_data(username, data):
-    data_file = get_data_file(username)
-    with open(data_file, 'w') as f:
-        json.dump(data, f, indent=2)
-
-class GTDHandler(BaseHTTPRequestHandler):
-    def get_session_username(self):
-        """Extract username from session cookie"""
-        cookie_header = self.headers.get('Cookie')
-        if cookie_header:
-            cookie = SimpleCookie(cookie_header)
-            if 'session_id' in cookie:
-                session_id = cookie['session_id'].value
-                return sessions.get(session_id)
-        return None
-    
-    def do_GET(self):
-        path = urlparse(self.path).path
-        
-        if path == '/':
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            self.wfile.write(get_html().encode())
-        elif path == '/api/check-session':
-            username = self.get_session_username()
-            if username:
-                users = load_users()
-                is_admin = users.get(username, {}).get('isAdmin', False)
-                self.send_json({"authenticated": True, "username": username, "isAdmin": is_admin})
-            else:
-                self.send_json({"authenticated": False})
-        elif path == '/api/data':
-            username = self.get_session_username()
-            if not username:
-                self.send_error(401, "Not authenticated")
-                return
-            data = load_data(username)
-            self.send_json(data)
-        else:
-            self.send_error(404)
-    
-    def do_POST(self):
-        path = urlparse(self.path).path
-        content_length = int(self.headers['Content-Length'])
-        body = self.rfile.read(content_length)
-        req_data = json.loads(body) if body else {}
-        
-        if path == '/api/login':
-            username = req_data.get('username', '').strip()
-            password = req_data.get('password', '')
-            
-            if not username or not password:
-                self.send_json({"success": False, "message": "Username and password required"})
-                return
-            
-            users = load_users()
-            
-            # Check if user exists
-            if username in users:
-                if users[username]['password'] == password:
-                    # Successful login
-                    session_id = secrets.token_hex(16)
-                    sessions[session_id] = username
-                    
-                    is_admin = users[username].get('isAdmin', False)
-                    
-                    self.send_response(200)
-                    self.send_header('Content-type', 'application/json')
-                    self.send_header('Set-Cookie', f'session_id={session_id}; Path=/; HttpOnly')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"success": True, "username": username, "isAdmin": is_admin}).encode())
-                else:
-                    self.send_json({"success": False, "message": "Invalid password"})
-            else:
-                self.send_json({"success": False, "message": "Account does not exist"})
-            return
-        
-        if path == '/api/logout':
-            cookie_header = self.headers.get('Cookie')
-            if cookie_header:
-                cookie = SimpleCookie(cookie_header)
-                if 'session_id' in cookie:
-                    session_id = cookie['session_id'].value
-                    sessions.pop(session_id, None)
-            
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Set-Cookie', 'session_id=; Path=/; HttpOnly; Max-Age=0')
-            self.end_headers()
-            self.wfile.write(json.dumps({"success": True}).encode())
-            return
-        
-        if path == '/api/admin/create-user':
-            username = self.get_session_username()
-            if not username:
-                self.send_error(401, "Not authenticated")
-                return
-            
-            users = load_users()
-            if not users.get(username, {}).get('isAdmin', False):
-                self.send_error(403, "Not authorized")
-                return
-            
-            new_username = req_data.get('username', '').strip()
-            new_password = req_data.get('password', '')
-            
-            if not new_username or not new_password:
-                self.send_json({"success": False, "message": "Username and password required"})
-                return
-            
-            if new_username in users:
-                self.send_json({"success": False, "message": "User already exists"})
-                return
-            
-            users[new_username] = {"password": new_password, "isAdmin": False}
-            save_users(users)
-            self.send_json({"success": True, "message": f"User '{new_username}' created successfully"})
-            return
-        
-        if path == '/api/admin/list-users':
-            username = self.get_session_username()
-            if not username:
-                self.send_error(401, "Not authenticated")
-                return
-            
-            users = load_users()
-            if not users.get(username, {}).get('isAdmin', False):
-                self.send_error(403, "Not authorized")
-                return
-            
-            user_list = [{"username": u, "isAdmin": data.get('isAdmin', False)} for u, data in users.items()]
-            self.send_json({"users": user_list})
-            return
-        
-        if path == '/api/admin/delete-user':
-            username = self.get_session_username()
-            if not username:
-                self.send_error(401, "Not authenticated")
-                return
-            
-            users = load_users()
-            if not users.get(username, {}).get('isAdmin', False):
-                self.send_error(403, "Not authorized")
-                return
-            
-            delete_username = req_data.get('username', '')
-            
-            if delete_username == 'admin':
-                self.send_json({"success": False, "message": "Cannot delete admin account"})
-                return
-            
-            if delete_username not in users:
-                self.send_json({"success": False, "message": "User not found"})
-                return
-            
-            del users[delete_username]
-            save_users(users)
-            
-            # Delete user's data file
-            data_file = get_data_file(delete_username)
-            if os.path.exists(data_file):
-                os.remove(data_file)
-            
-            self.send_json({"success": True, "message": f"User '{delete_username}' deleted"})
-            return
-        
-        username = self.get_session_username()
-        if not username:
-            self.send_error(401, "Not authenticated")
-            return
-        
-        data = load_data(username)
-        
-        if path == '/api/items':
-            item = {
-                'title': req_data.get('title', ''),
-                'notes': req_data.get('notes'),
-                'status': req_data.get('status', 'inbox'),
-                'projectId': req_data.get('projectId'),
-                'startTime': req_data.get('startTime'),
-                'dueDatetime': req_data.get('dueDatetime'),
-                'position': req_data.get('position', 0),
-                'id': data['nextItemId'],
-                'createdAt': datetime.now().isoformat()
-            }
-            data['items'].append(item)
-            data['nextItemId'] += 1
-            save_data(username, data)
-            self.send_json(item)
-        elif path == '/api/projects':
-            project = {
-                'name': req_data.get('name', ''),
-                'outcome': req_data.get('outcome'),
-                'status': req_data.get('status', 'active'),
-                'id': data['nextProjectId'],
-                'createdAt': datetime.now().isoformat()
-            }
-            data['projects'].append(project)
-            data['nextProjectId'] += 1
-            save_data(username, data)
-            self.send_json(project)
-        else:
-            self.send_error(404)
-    
-    def do_PUT(self):
-        path = urlparse(self.path).path
-        parts = path.split('/')
-        
-        if len(parts) < 4:
-            self.send_error(400)
-            return
-        
-        username = self.get_session_username()
-        if not username:
-            self.send_error(401, "Not authenticated")
-            return
-            
-        content_length = int(self.headers['Content-Length'])
-        body = self.rfile.read(content_length)
-        updates = json.loads(body) if body else {}
-        
-        data = load_data(username)
-        item_id = int(parts[3])
-        
-        if parts[2] == 'items':
-            for i, item in enumerate(data['items']):
-                if item['id'] == item_id:
-                    data['items'][i].update(updates)
-                    save_data(username, data)
-                    self.send_json(data['items'][i])
-                    return
-        elif parts[2] == 'projects':
-            for i, project in enumerate(data['projects']):
-                if project['id'] == item_id:
-                    data['projects'][i].update(updates)
-                    save_data(username, data)
-                    self.send_json(data['projects'][i])
-                    return
-        
-        self.send_error(404)
-    
-    def do_DELETE(self):
-        path = urlparse(self.path).path
-        parts = path.split('/')
-        
-        if len(parts) < 4:
-            self.send_error(400)
-            return
-        
-        username = self.get_session_username()
-        if not username:
-            self.send_error(401, "Not authenticated")
-            return
-            
-        data = load_data(username)
-        item_id = int(parts[3])
-        
-        if parts[2] == 'items':
-            data['items'] = [i for i in data['items'] if i['id'] != item_id]
-            save_data(username, data)
-            self.send_response(204)
-            self.end_headers()
-        elif parts[2] == 'projects':
-            data['projects'] = [p for p in data['projects'] if p['id'] != item_id]
-            # Remove project reference from items
-            for item in data['items']:
-                if item.get('projectId') == item_id:
-                    item['projectId'] = None
-                    item['status'] = 'inbox'
-            save_data(username, data)
-            self.send_response(204)
-            self.end_headers()
-        else:
-            self.send_error(404)
-    
-    def send_json(self, obj):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        self.wfile.write(json.dumps(obj).encode())
-    
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
-    
-    def log_message(self, format, *args):
-        pass  # Suppress logging
-
-def get_html():
-    return """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -617,6 +281,7 @@ def get_html():
             margin-bottom: 8px;
             cursor: move;
             transition: all 0.2s;
+            position: relative;
         }
         
         .item:hover {
@@ -626,6 +291,46 @@ def get_html():
         
         .item.dragging {
             opacity: 0.5;
+        }
+        
+        .drop-target-hover {
+            background: #3a4555 !important;
+            border-color: #0d6efd !important;
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.3) !important;
+        }
+        
+        .drop-target-project {
+            background: #2a3545 !important;
+            border: 2px dashed #0d6efd !important;
+        }
+        
+        .insert-indicator {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #0d6efd;
+            border-radius: 2px;
+            box-shadow: 0 0 8px rgba(13, 110, 253, 0.6);
+            animation: pulse 0.6s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scaleY(1); }
+            50% { opacity: 0.7; transform: scaleY(1.5); }
+        }
+        
+        .pane-content.drop-zone-active {
+            background: rgba(13, 110, 253, 0.05);
+            border: 2px dashed #0d6efd;
+            border-radius: 8px;
+        }
+        
+        .project-pane.drop-zone-active {
+            background: rgba(13, 110, 253, 0.08) !important;
+            border: 2px solid #0d6efd !important;
         }
         
         .item-title {
@@ -704,6 +409,7 @@ def get_html():
             border-radius: 8px;
             padding: 12px;
             height: fit-content;
+            position: relative;
         }
         
         .project-header {
@@ -906,6 +612,85 @@ def get_html():
         
         ::-webkit-scrollbar-thumb:hover {
             background: #6c757d;
+        }
+        
+        /* Mobile Styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 8px;
+            }
+            
+            header {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 12px;
+                gap: 8px;
+            }
+            
+            header h1 {
+                font-size: 20px;
+            }
+            
+            .user-info {
+                justify-content: space-between;
+                width: 100%;
+            }
+            
+            /* Stack grid vertically */
+            .grid-row {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                margin-bottom: 16px;
+            }
+            
+            /* Stack projects vertically */
+            .projects-row {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                overflow-x: visible;
+                padding-bottom: 0;
+            }
+            
+            .pane {
+                width: 100%;
+                min-height: 300px;
+                height: auto;
+                max-height: 500px;
+            }
+            
+            .project-pane {
+                width: 100%;
+                min-width: auto;
+            }
+            
+            .quick-capture {
+                padding: 8px;
+            }
+            
+            .quick-capture input[type="text"] {
+                font-size: 14px;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 10px;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+            
+            .login-box {
+                width: 90%;
+                max-width: 350px;
+            }
+            
+            .admin-panel {
+                width: 95%;
+                max-width: none;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
         }
     </style>
 </head>
@@ -1223,17 +1008,11 @@ def get_html():
         }
         
         function getInboxItems() {
-            return data.items.filter(i => 
-                i.status === 'inbox' || 
-                (i.status === 'done' && !i.projectId && (!i.previousStatus || i.previousStatus === 'inbox'))
-            );
+            return data.items.filter(i => i.status === 'inbox');
         }
         
         function getSomedayItems() {
-            return data.items.filter(i => 
-                i.status === 'someday' || 
-                (i.status === 'done' && !i.projectId && i.previousStatus === 'someday')
-            );
+            return data.items.filter(i => i.status === 'someday');
         }
         
         function getCalendarItems() {
@@ -1254,7 +1033,7 @@ def get_html():
                     .filter(i => i.projectId === project.id && i.status === 'projects')
                     .sort((a, b) => (a.position || 0) - (b.position || 0));
                 // Get first non-done item
-                const firstUndone = projectItems.find(i => i.status !== 'done');
+                const firstUndone = projectItems.find(i => !i.done);
                 if (firstUndone) {
                     nextActions.push({ ...firstUndone, project });
                 }
@@ -1269,7 +1048,7 @@ def get_html():
         }
         
         function renderItem(item, showCheckbox = true) {
-            const isDone = item.status === 'done';
+            const isDone = item.done;
             
             let html = '<div class="item' + (isDone ? ' done' : '') + '" draggable="true" data-id="' + item.id + '">';
             
@@ -1307,12 +1086,12 @@ def get_html():
             // Calendar
             const calItems = getCalendarItems();
             document.getElementById('calendar-content').innerHTML = 
-                calItems.length ? calItems.map(i => renderItem(i, false)).join('') : '<div class="empty-state">No scheduled items</div>';
+                calItems.length ? calItems.map(i => renderItem(i, true)).join('') : '<div class="empty-state">No scheduled items</div>';
             
             // Next Actions
             const nextActions = getNextActions();
             document.getElementById('next-content').innerHTML = 
-                nextActions.length ? nextActions.map(i => renderItem(i, false)).join('') : '<div class="empty-state">No next actions</div>';
+                nextActions.length ? nextActions.map(i => renderItem(i, true)).join('') : '<div class="empty-state">No next actions</div>';
             
             // Someday
             document.getElementById('someday-content').innerHTML = 
@@ -1322,7 +1101,7 @@ def get_html():
             let projectsHtml = '';
             data.projects.forEach(project => {
                 const projectItems = data.items
-                    .filter(i => i.projectId === project.id && (i.status === 'projects' || i.status === 'done'))
+                    .filter(i => i.projectId === project.id && i.status === 'projects')
                     .sort((a, b) => (a.position || 0) - (b.position || 0));
                 
                 projectsHtml += '<div class="project-pane" data-project-id="' + project.id + '">';
@@ -1350,6 +1129,8 @@ def get_html():
                 el.addEventListener('dragstart', handleDragStart);
                 el.addEventListener('dragend', handleDragEnd);
                 el.addEventListener('dragover', handleDragOver);
+                el.addEventListener('dragenter', handleDragEnter);
+                el.addEventListener('dragleave', handleDragLeave);
                 el.addEventListener('drop', handleDrop);
                 el.addEventListener('click', function(e) {
                     if (!e.target.classList.contains('checkbox')) {
@@ -1361,11 +1142,15 @@ def get_html():
             // Attach drop listeners
             document.querySelectorAll('[data-status]').forEach(el => {
                 el.addEventListener('dragover', handleDragOver);
+                el.addEventListener('dragenter', handleDragEnter);
+                el.addEventListener('dragleave', handleDragLeave);
                 el.addEventListener('drop', handleDrop);
             });
             
             document.querySelectorAll('[data-project-id]').forEach(el => {
                 el.addEventListener('dragover', handleDragOver);
+                el.addEventListener('dragenter', handleDragEnter);
+                el.addEventListener('dragleave', handleDragLeave);
                 el.addEventListener('drop', handleDrop);
             });
         }
@@ -1377,16 +1162,128 @@ def get_html():
         
         function handleDragEnd(e) {
             e.target.classList.remove('dragging');
+            // Clean up all visual feedback
+            document.querySelectorAll('.drop-target-hover, .drop-target-project, .drop-zone-active').forEach(el => {
+                el.classList.remove('drop-target-hover', 'drop-target-project', 'drop-zone-active');
+                el._dragDepth = 0; // Reset drag depth counters
+            });
+            document.querySelectorAll('.insert-indicator').forEach(el => el.remove());
             draggedItem = null;
+        }
+        
+        function handleDragEnter(e) {
+            if (!draggedItem) return;
+            e.preventDefault();
+            
+            const target = e.currentTarget;
+            
+            // Track drag depth to prevent flickering from child elements
+            if (!target._dragDepth) target._dragDepth = 0;
+            target._dragDepth++;
+            
+            // Only apply visual feedback on first enter
+            if (target._dragDepth !== 1) return;
+            
+            // Highlight panes
+            if (target.dataset.status || target.dataset.projectId) {
+                if (target.classList.contains('pane-content')) {
+                    target.classList.add('drop-zone-active');
+                } else if (target.classList.contains('project-pane')) {
+                    target.classList.add('drop-zone-active');
+                }
+            }
+        }
+        
+        function handleDragLeave(e) {
+            if (!draggedItem) return;
+            const target = e.currentTarget;
+            
+            // Track drag depth to prevent flickering from child elements
+            if (!target._dragDepth) target._dragDepth = 0;
+            target._dragDepth--;
+            
+            // Only remove visual feedback when fully leaving the element
+            if (target._dragDepth > 0) return;
+            
+            // Remove highlights
+            target.classList.remove('drop-target-hover', 'drop-target-project', 'drop-zone-active');
+            
+            // Remove insertion indicators from this element
+            const indicators = target.querySelectorAll('.insert-indicator');
+            indicators.forEach(ind => ind.remove());
         }
         
         function handleDragOver(e) {
             e.preventDefault();
+            
+            if (!draggedItem) return;
+            const item = data.items.find(i => i.id === draggedItem);
+            if (!item) return;
+            
+            // Remove all existing indicators
+            document.querySelectorAll('.insert-indicator').forEach(el => el.remove());
+            
+            // Check if we're in a project pane and dragging a project item
+            const projectPane = e.target.closest('.project-pane');
+            if (!projectPane || item.status !== 'projects') return;
+            
+            const projectId = parseInt(projectPane.dataset.projectId);
+            if (!projectId || item.projectId !== projectId) return;
+            
+            // Get all items in this project
+            const projectItems = Array.from(projectPane.querySelectorAll('.item'))
+                .map(el => {
+                    const rect = el.getBoundingClientRect();
+                    return {
+                        id: parseInt(el.dataset.id),
+                        element: el,
+                        midpoint: rect.top + rect.height / 2,
+                        top: rect.top,
+                        bottom: rect.bottom
+                    };
+                })
+                .filter(itemData => itemData.id !== draggedItem); // Exclude dragged item
+            
+            if (projectItems.length === 0) return;
+            
+            const mouseY = e.clientY;
+            
+            // Find closest item based on distance to midpoint
+            let closest = projectItems[0];
+            let minDistance = Math.abs(mouseY - closest.midpoint);
+            
+            for (let i = 1; i < projectItems.length; i++) {
+                const distance = Math.abs(mouseY - projectItems[i].midpoint);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = projectItems[i];
+                }
+            }
+            
+            // Determine if mouse is above or below the closest item's midpoint
+            const insertBefore = mouseY < closest.midpoint;
+            
+            // Store drop information on the project pane
+            projectPane._closestItemId = closest.id;
+            projectPane._insertBefore = insertBefore;
+            
+            // Show indicator
+            const indicator = document.createElement('div');
+            indicator.className = 'insert-indicator';
+            indicator.style.top = insertBefore ? '-4px' : 'calc(100% + 4px)';
+            closest.element.appendChild(indicator);
         }
         
         async function handleDrop(e) {
             e.preventDefault();
             e.stopPropagation();  // Prevent bubbling to project pane
+            
+            // Clean up visual feedback
+            document.querySelectorAll('.drop-target-hover, .drop-target-project, .drop-zone-active').forEach(el => {
+                el.classList.remove('drop-target-hover', 'drop-target-project', 'drop-zone-active');
+            });
+            document.querySelectorAll('.insert-indicator').forEach(el => el.remove());
+            
             if (!draggedItem) return;
             
             const item = data.items.find(i => i.id === draggedItem);
@@ -1394,36 +1291,66 @@ def get_html():
             
             const target = e.currentTarget;
             
-            // Check if dropped on another item
-            if (target.classList.contains('item')) {
-                const targetItemId = parseInt(target.dataset.id);
-                const targetItem = data.items.find(i => i.id === targetItemId);
+            // Check if dropped in a project pane for reordering
+            const projectPane = target.closest('.project-pane');
+            if (projectPane && projectPane._closestItemId && item.status === 'projects') {
+                const projectId = parseInt(projectPane.dataset.projectId);
                 
-                // If both items are in the same project, reorder
-                if (targetItem && targetItem.projectId && item.projectId === targetItem.projectId) {
-                    const projectId = targetItem.projectId;
+                if (item.projectId === projectId) {
+                    // Reordering within same project
                     const projectItems = data.items
                         .filter(i => i.projectId === projectId && i.status === 'projects')
                         .sort((a, b) => (a.position || 0) - (b.position || 0));
                     
                     const oldIndex = projectItems.findIndex(i => i.id === draggedItem);
-                    const newIndex = projectItems.findIndex(i => i.id === targetItemId);
+                    let targetIndex = projectItems.findIndex(i => i.id === projectPane._closestItemId);
                     
-                    if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-                        // Build new order: remove dragged item, then insert at target position
-                        const reordered = projectItems.filter(i => i.id !== draggedItem);
-                        const draggedItemObj = projectItems[oldIndex];
-                        reordered.splice(newIndex, 0, draggedItemObj);
+                    if (oldIndex !== -1 && targetIndex !== -1) {
+                        // If inserting after, increment target index
+                        if (!projectPane._insertBefore) {
+                            targetIndex++;
+                        }
                         
-                        // Update all positions sequentially
-                        for (let i = 0; i < reordered.length; i++) {
-                            await fetch('/api/items/' + reordered[i].id, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ position: i })
-                            });
+                        // Adjust if moving down (removal shifts indices)
+                        if (oldIndex < targetIndex) {
+                            targetIndex--;
+                        }
+                        
+                        // Only update if position actually changes
+                        if (oldIndex !== targetIndex) {
+                            const reordered = projectItems.filter(i => i.id !== draggedItem);
+                            const draggedItemObj = projectItems[oldIndex];
+                            reordered.splice(targetIndex, 0, draggedItemObj);
+                            
+                            for (let i = 0; i < reordered.length; i++) {
+                                await fetch('/api/items/' + reordered[i].id, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ position: i })
+                                });
+                            }
                         }
                     }
+                    await loadData();
+                    return;
+                }
+            }
+            
+            // Check if dropped on an item to add to that item's project
+            if (target.classList.contains('item')) {
+                const targetItemId = parseInt(target.dataset.id);
+                const targetItem = data.items.find(i => i.id === targetItemId);
+                
+                if (targetItem && targetItem.projectId) {
+                    const projectId = targetItem.projectId;
+                    const projectItems = data.items.filter(i => i.projectId === projectId && i.status === 'projects');
+                    const maxPos = projectItems.length > 0 ? Math.max(...projectItems.map(i => i.position || 0)) : -1;
+                    
+                    await fetch('/api/items/' + draggedItem, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'projects', projectId, position: maxPos + 1 })
+                    });
                     await loadData();
                     return;
                 }
@@ -1486,28 +1413,10 @@ def get_html():
             const item = data.items.find(i => i.id === itemId);
             if (!item) return;
             
-            let updates = {};
-            if (item.status === 'done') {
-                // Restore to previous status (stored in notes field temporarily or use a better approach)
-                // Check if it has a project -> projects, otherwise check previousStatus
-                if (item.projectId) {
-                    updates.status = 'projects';
-                } else if (item.previousStatus) {
-                    updates.status = item.previousStatus;
-                    updates.previousStatus = null;
-                } else {
-                    updates.status = 'inbox';
-                }
-            } else {
-                // Mark as done and store previous status
-                updates.status = 'done';
-                updates.previousStatus = item.status;
-            }
-            
             await fetch('/api/items/' + itemId, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updates)
+                body: JSON.stringify({ done: !item.done })
             });
             
             await loadData();
@@ -1654,21 +1563,4 @@ def get_html():
         checkSession();
     </script>
 </body>
-</html>"""
-
-if __name__ == '__main__':
-    PORT = 8000
-    server = HTTPServer(('localhost', PORT), GTDHandler)
-    print(f"\n✅ GTD Task Manager running at http://localhost:{PORT}")
-    print(f"📁 User data saved to: data_<username>.json")
-    print(f"\nPress Ctrl+C to stop\n")
-    
-    try:
-        webbrowser.open(f'http://localhost:{PORT}')
-    except:
-        pass
-    
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        print("\n\n👋 Server stopped")
+</html>
