@@ -2,6 +2,7 @@
 data.json
 data_*.json
 users.json
+sessions.json
 
 # Local deployment instructions
 DEPLOY.md

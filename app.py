@@ -10,7 +10,19 @@ from http.cookies import SimpleCookie
 import secrets
 
 USERS_FILE = "users.json"
-sessions = {}  # session_id -> username
+SESSIONS_FILE = "sessions.json"
+
+def load_sessions():
+    if os.path.exists(SESSIONS_FILE):
+        with open(SESSIONS_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_sessions(sessions):
+    with open(SESSIONS_FILE, 'w') as f:
+        json.dump(sessions, f, indent=2)
+
+sessions = load_sessions()  # session_id -> username
 
 def load_users():
     if os.path.exists(USERS_FILE):
@@ -104,6 +116,7 @@ class GTDHandler(BaseHTTPRequestHandler):
                     # Successful login
                     session_id = secrets.token_hex(16)
                     sessions[session_id] = username
+                    save_sessions(sessions)
                     
                     is_admin = users[username].get('isAdmin', False)
                     
@@ -125,6 +138,7 @@ class GTDHandler(BaseHTTPRequestHandler):
                 if 'session_id' in cookie:
                     session_id = cookie['session_id'].value
                     sessions.pop(session_id, None)
+                    save_sessions(sessions)
             
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
