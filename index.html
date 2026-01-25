@@ -831,6 +831,7 @@
                     <div style="display: flex; flex-direction: column; gap: 8px;">
                         <button id="adminBtn" class="btn btn-secondary" onclick="showAdminPanel()" style="display:none; width: 100%; padding: 8px;">Admin Panel</button>
                         <button class="btn btn-danger" onclick="logout()" style="width: 100%; padding: 8px;">Logout</button>
+                        <button class="btn btn-secondary" onclick="deleteAllDoneItems()" style="width: 100%; padding: 8px; background: #6c757d;">Delete Done Items</button>
                     </div>
                 </div>
             </div>
@@ -1000,6 +1001,31 @@
                 location.reload();
             } catch (error) {
                 console.error('Logout failed:', error);
+            }
+        }
+        
+        async function deleteAllDoneItems() {
+            const doneItems = data.items.filter(i => i.done);
+            
+            if (doneItems.length === 0) {
+                alert('No done items to delete.');
+                return;
+            }
+            
+            if (!confirm(`Delete ${doneItems.length} done item(s)? This cannot be undone.`)) return;
+            
+            try {
+                // Delete each done item
+                for (const item of doneItems) {
+                    await fetch('/api/items/' + item.id, { method: 'DELETE' });
+                }
+                
+                // Reload data
+                await loadData();
+                alert(`Deleted ${doneItems.length} done item(s).`);
+            } catch (error) {
+                console.error('Failed to delete done items:', error);
+                alert('Failed to delete some items. Please try again.');
             }
         }
         
