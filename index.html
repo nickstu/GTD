@@ -1214,7 +1214,14 @@
             // Show date before title if present
             let titleHtml = '';
             if (item.dueDatetime) {
-                titleHtml += '<span style="color: #6c757d; font-size: 11px; margin-right: 6px;">📅 ' + formatDate(item.dueDatetime);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayStr = today.toISOString().split('T')[0];
+                const itemDate = item.dueDatetime.split('T')[0];
+                const isToday = itemDate === todayStr;
+                
+                titleHtml += '<span style="color: #6c757d; font-size: 11px; margin-right: 6px;">📅 ';
+                titleHtml += isToday ? 'Today' : formatDate(item.dueDatetime);
                 if (item.startTime) titleHtml += ' ' + item.startTime;
                 titleHtml += '</span>';
             }
