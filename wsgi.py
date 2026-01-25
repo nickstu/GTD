@@ -667,6 +667,85 @@ def get_html():
         ::-webkit-scrollbar-thumb:hover {
             background: #6c757d;
         }
+        
+        /* Mobile Styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 8px;
+            }
+            
+            header {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 12px;
+                gap: 8px;
+            }
+            
+            header h1 {
+                font-size: 20px;
+            }
+            
+            .user-info {
+                justify-content: space-between;
+                width: 100%;
+            }
+            
+            /* Stack grid vertically */
+            .grid-row {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                margin-bottom: 16px;
+            }
+            
+            /* Stack projects vertically */
+            .projects-row {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                overflow-x: visible;
+                padding-bottom: 0;
+            }
+            
+            .pane {
+                width: 100%;
+                min-height: 300px;
+                height: auto;
+                max-height: 500px;
+            }
+            
+            .project-pane {
+                width: 100%;
+                min-width: auto;
+            }
+            
+            .quick-capture {
+                padding: 8px;
+            }
+            
+            .quick-capture input[type="text"] {
+                font-size: 14px;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 10px;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+            
+            .login-box {
+                width: 90%;
+                max-width: 350px;
+            }
+            
+            .admin-panel {
+                width: 95%;
+                max-width: none;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+        }
     </style>
 </head>
 <body>
