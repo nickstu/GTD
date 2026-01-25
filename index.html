@@ -1156,33 +1156,39 @@
         }
         
         function getNextActions() {
-            const nextActions = [];
+            const candidates = [];
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const todayStr = today.toISOString().split('T')[0];
             
-            // Get first non-done item from each project
+            // Step 1: Get first non-done item from each project
             data.projects.forEach(project => {
                 const projectItems = data.items
                     .filter(i => i.projectId === project.id && i.status === 'projects')
                     .sort((a, b) => (a.position || 0) - (b.position || 0));
-                // Get first non-done item
                 const firstUndone = projectItems.find(i => !i.done);
                 if (firstUndone) {
-                    nextActions.push({ ...firstUndone, project });
+                    candidates.push({ ...firstUndone, project });
                 }
             });
             
-            // Add all items with today's date (if not already in next actions)
-            const nextActionIds = new Set(nextActions.map(a => a.id));
+            // Step 2: Add any other not-done items from any zone with today's date
+            const candidateIds = new Set(candidates.map(c => c.id));
             data.items.forEach(item => {
-                if (item.dueDatetime && !item.done && !nextActionIds.has(item.id)) {
+                if (item.dueDatetime && !item.done && !candidateIds.has(item.id)) {
                     const itemDate = item.dueDatetime.split('T')[0];
                     if (itemDate === todayStr) {
                         const project = item.projectId ? data.projects.find(p => p.id === item.projectId) : null;
-                        nextActions.push({ ...item, project });
+                        candidates.push({ ...item, project });
                     }
                 }
+            });
+            
+            // Step 3: Filter candidates to only include items with no date OR today's date
+            const nextActions = candidates.filter(item => {
+                if (!item.dueDatetime) return true; // No date = include
+                const itemDate = item.dueDatetime.split('T')[0];
+                return itemDate === todayStr; // Only include if date is today
             });
             
             return nextActions;
