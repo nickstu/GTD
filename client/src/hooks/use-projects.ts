@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type CreateProjectRequest, type UpdateProjectRequest } from "@shared/routes";
+import { api, buildUrl } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
+import { CreateProjectRequest, UpdateProjectRequest } from "@shared/schema";
 
 export function useProjects() {
   return useQuery({
