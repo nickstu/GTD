@@ -1067,12 +1067,12 @@ def get_html():
             // Calendar
             const calItems = getCalendarItems();
             document.getElementById('calendar-content').innerHTML = 
-                calItems.length ? calItems.map(i => renderItem(i, false)).join('') : '<div class="empty-state">No scheduled items</div>';
+                calItems.length ? calItems.map(i => renderItem(i, true)).join('') : '<div class="empty-state">No scheduled items</div>';
             
             // Next Actions
             const nextActions = getNextActions();
             document.getElementById('next-content').innerHTML = 
-                nextActions.length ? nextActions.map(i => renderItem(i, false)).join('') : '<div class="empty-state">No next actions</div>';
+                nextActions.length ? nextActions.map(i => renderItem(i, true)).join('') : '<div class="empty-state">No next actions</div>';
             
             // Someday
             document.getElementById('someday-content').innerHTML = 
