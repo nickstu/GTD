@@ -1493,44 +1493,20 @@
             // Remove all existing indicators
             document.querySelectorAll('.project-pane-insert-indicator').forEach(el => el.remove());
             
-            // Get all project panes
-            const projectPanes = Array.from(document.querySelectorAll('.project-pane')).map(el => {
-                const rect = el.getBoundingClientRect();
-                return {
-                    id: parseInt(el.dataset.projectId),
-                    element: el,
-                    midpoint: rect.left + rect.width / 2,
-                    left: rect.left,
-                    right: rect.right
-                };
-            }).filter(p => p.id !== draggedProject);
-            
-            if (projectPanes.length === 0) return;
-            
+            // Determine if we're on the left or right half of the target pane
+            const rect = targetPane.getBoundingClientRect();
             const mouseX = e.clientX;
-            
-            // Find closest project
-            let closest = projectPanes[0];
-            let minDistance = Math.abs(mouseX - closest.midpoint);
-            
-            for (let i = 1; i < projectPanes.length; i++) {
-                const distance = Math.abs(mouseX - projectPanes[i].midpoint);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closest = projectPanes[i];
-                }
-            }
-            
-            const insertBefore = mouseX < closest.midpoint;
+            const midpoint = rect.left + rect.width / 2;
+            const insertBefore = mouseX < midpoint;
             
             // Store drop information
-            targetPane._closestProjectId = closest.id;
+            targetPane._closestProjectId = targetProjectId;
             targetPane._insertBefore = insertBefore;
             
-            // Show indicator
+            // Show indicator on the current target pane
             const indicator = document.createElement('div');
             indicator.className = 'project-pane-insert-indicator ' + (insertBefore ? 'before' : 'after');
-            closest.element.appendChild(indicator);
+            targetPane.appendChild(indicator);
         }
         
         async function handleProjectDrop(e) {
