@@ -983,17 +983,11 @@ def get_html():
         }
         
         function getInboxItems() {
-            return data.items.filter(i => 
-                i.status === 'inbox' || 
-                (i.status === 'done' && !i.projectId && (!i.previousStatus || i.previousStatus === 'inbox'))
-            );
+            return data.items.filter(i => i.status === 'inbox');
         }
         
         function getSomedayItems() {
-            return data.items.filter(i => 
-                i.status === 'someday' || 
-                (i.status === 'done' && !i.projectId && i.previousStatus === 'someday')
-            );
+            return data.items.filter(i => i.status === 'someday');
         }
         
         function getCalendarItems() {
@@ -1014,7 +1008,7 @@ def get_html():
                     .filter(i => i.projectId === project.id && i.status === 'projects')
                     .sort((a, b) => (a.position || 0) - (b.position || 0));
                 // Get first non-done item
-                const firstUndone = projectItems.find(i => i.status !== 'done');
+                const firstUndone = projectItems.find(i => !i.done);
                 if (firstUndone) {
                     nextActions.push({ ...firstUndone, project });
                 }
@@ -1029,7 +1023,7 @@ def get_html():
         }
         
         function renderItem(item, showCheckbox = true) {
-            const isDone = item.status === 'done';
+            const isDone = item.done;
             
             let html = '<div class="item' + (isDone ? ' done' : '') + '" draggable="true" data-id="' + item.id + '">';
             
@@ -1082,7 +1076,7 @@ def get_html():
             let projectsHtml = '';
             data.projects.forEach(project => {
                 const projectItems = data.items
-                    .filter(i => i.projectId === project.id && (i.status === 'projects' || i.status === 'done'))
+                    .filter(i => i.projectId === project.id && i.status === 'projects')
                     .sort((a, b) => (a.position || 0) - (b.position || 0));
                 
                 projectsHtml += '<div class="project-pane" data-project-id="' + project.id + '">';
@@ -1394,28 +1388,10 @@ def get_html():
             const item = data.items.find(i => i.id === itemId);
             if (!item) return;
             
-            let updates = {};
-            if (item.status === 'done') {
-                // Restore to previous status (stored in notes field temporarily or use a better approach)
-                // Check if it has a project -> projects, otherwise check previousStatus
-                if (item.projectId) {
-                    updates.status = 'projects';
-                } else if (item.previousStatus) {
-                    updates.status = item.previousStatus;
-                    updates.previousStatus = null;
-                } else {
-                    updates.status = 'inbox';
-                }
-            } else {
-                // Mark as done and store previous status
-                updates.status = 'done';
-                updates.previousStatus = item.status;
-            }
-            
             await fetch('/api/items/' + itemId, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updates)
+                body: JSON.stringify({ done: !item.done })
             });
             
             await loadData();
