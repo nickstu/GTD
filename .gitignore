@@ -1,6 +1,14 @@
-node_modules
-dist
+# User data files - should not be committed
+data.json
+data_*.json
+users.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# OS
 .DS_Store
-server/public
-vite.config.ts.*
-*.tar.gz
