@@ -137,32 +137,24 @@ export async function seedDatabase() {
     await storage.createItem({
       title: "Process this inbox item",
       notes: "Decide if this is actionable. If yes, what's the next action?",
-      status: "inbox",
-      contexts: ["@computer"]
+      status: "inbox"
     });
 
     await storage.createItem({
       title: "Read 'Getting Things Done'",
-      status: "next",
+      status: "projects",
       projectId: project.id,
-      contexts: ["@reading", "@home"],
-      energyLevel: "medium",
-      timeEstimate: "2h"
     });
 
     await storage.createItem({
       title: "Weekly Review",
-      status: "next",
-      contexts: ["@review"],
+      status: "projects",
       notes: "Empty head, process inbox, review lists.",
-      energyLevel: "high"
     });
     
     await storage.createItem({
       title: "Buy replacement batteries",
-      status: "errands",
-      contexts: ["@errands", "@store"],
-      energyLevel: "low"
+      status: "someday",
     });
   }
 }
