@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useUpdateItem, useDeleteItem } from "@/hooks/use-items";
-import { useProjects, useCreateProject } from "@/hooks/use-projects";
+import { useProjects, useCreateProject, useUpdateProject } from "@/hooks/use-projects";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ItemDialogProps {
