@@ -456,6 +456,30 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            transition: opacity 0.2s;
+        }
+        
+        .project-pane.dragging {
+            opacity: 0.4;
+        }
+        
+        .project-pane-insert-indicator {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #0d6efd;
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .project-pane-insert-indicator.before {
+            left: -8px;
+        }
+        
+        .project-pane-insert-indicator.after {
+            right: -8px;
         }
         
         .project-header {
@@ -753,6 +777,24 @@
             .project-pane {
                 width: 100%;
                 min-width: auto;
+            }
+            
+            .project-pane-insert-indicator.before {
+                left: 0;
+                right: 0;
+                top: -8px;
+                bottom: auto;
+                width: 100%;
+                height: 4px;
+            }
+            
+            .project-pane-insert-indicator.after {
+                left: 0;
+                right: 0;
+                top: auto;
+                bottom: -8px;
+                width: 100%;
+                height: 4px;
             }
             
             .quick-capture {
@@ -1426,39 +1468,17 @@
             if (projectPane) {
                 projectPane.classList.remove('dragging');
             }
-            document.querySelectorAll('.project-pane').forEach(el => {
-                el.classList.remove('drop-zone-active');
-                el._dragDepth = 0;
-            });
-            document.querySelectorAll('.insert-indicator').forEach(el => el.remove());
+            document.querySelectorAll('.project-pane-insert-indicator').forEach(el => el.remove());
             draggedProject = null;
         }
         
         function handleProjectDragEnter(e) {
             if (!draggedProject) return;
             e.preventDefault();
-            
-            const target = e.currentTarget;
-            if (!target._dragDepth) target._dragDepth = 0;
-            target._dragDepth++;
-            
-            if (target._dragDepth === 1 && parseInt(target.dataset.projectId) !== draggedProject) {
-                target.classList.add('drop-zone-active');
-            }
         }
         
         function handleProjectDragLeave(e) {
             if (!draggedProject) return;
-            
-            const target = e.currentTarget;
-            if (!target._dragDepth) target._dragDepth = 0;
-            target._dragDepth--;
-            
-            if (target._dragDepth === 0) {
-                target.classList.remove('drop-zone-active');
-                const indicators = target.querySelectorAll('.insert-indicator');
-                indicators.forEach(ind => ind.remove());
-            }
         }
         
         function handleProjectDragOver(e) {
@@ -1471,7 +1491,7 @@
             if (targetProjectId === draggedProject) return;
             
             // Remove all existing indicators
-            document.querySelectorAll('.insert-indicator').forEach(el => el.remove());
+            document.querySelectorAll('.project-pane-insert-indicator').forEach(el => el.remove());
             
             // Get all project panes
             const projectPanes = Array.from(document.querySelectorAll('.project-pane')).map(el => {
@@ -1509,13 +1529,7 @@
             
             // Show indicator
             const indicator = document.createElement('div');
-            indicator.className = 'insert-indicator';
-            indicator.style.left = insertBefore ? '-8px' : 'auto';
-            indicator.style.right = insertBefore ? 'auto' : '-8px';
-            indicator.style.top = '0';
-            indicator.style.bottom = '0';
-            indicator.style.width = '4px';
-            indicator.style.height = '100%';
+            indicator.className = 'project-pane-insert-indicator ' + (insertBefore ? 'before' : 'after');
             closest.element.appendChild(indicator);
         }
         
@@ -1523,10 +1537,7 @@
             e.preventDefault();
             e.stopPropagation();
             
-            document.querySelectorAll('.project-pane').forEach(el => {
-                el.classList.remove('drop-zone-active');
-            });
-            document.querySelectorAll('.insert-indicator').forEach(el => el.remove());
+            document.querySelectorAll('.project-pane-insert-indicator').forEach(el => el.remove());
             
             if (!draggedProject) return;
             
