@@ -251,7 +251,7 @@ export default function DashboardPage() {
   const activeItem = items.find(i => i.id === activeId);
 
   return (
-    <div className="h-full flex flex-col gap-6 p-6 font-sans">
+    <div className="h-full flex flex-col gap-6 p-6 font-sans overflow-hidden">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight uppercase">GTD</h1>
       </header>
@@ -262,91 +262,99 @@ export default function DashboardPage() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 flex-1">
-          {/* INBOX */}
-          <Bin id="inbox" title="Inbox" icon={Inbox}>
-            <form onSubmit={handleQuickCapture} className="space-y-2 mb-4 bg-muted/30 p-2 rounded-lg border">
-              <Input 
-                value={quickTitle} 
-                onChange={e => setQuickTitle(e.target.value)} 
-                placeholder="Quick capture..." 
-                className="h-8 text-xs font-sans"
-              />
-              <div className="flex gap-1">
+        <div className="flex flex-col gap-6 flex-1 min-h-0 overflow-y-auto pr-2">
+          {/* TOP ROW: Bins */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* INBOX */}
+            <Bin id="inbox" title="Inbox" icon={Inbox}>
+              <form onSubmit={handleQuickCapture} className="space-y-2 mb-4 bg-muted/30 p-2 rounded-lg border">
                 <Input 
-                  type="date" 
-                  value={quickDate} 
-                  onChange={e => setQuickDate(e.target.value)} 
-                  className="h-7 text-[10px] p-1 font-sans"
+                  value={quickTitle} 
+                  onChange={e => setQuickTitle(e.target.value)} 
+                  placeholder="Quick capture..." 
+                  className="h-8 text-xs font-sans"
                 />
-                <Input 
-                  type="time" 
-                  value={quickTime} 
-                  onChange={e => setQuickTime(e.target.value)} 
-                  className="h-7 text-[10px] p-1 font-sans"
-                />
-              </div>
-              <Button type="submit" size="sm" className="w-full h-7 text-xs">Add</Button>
-            </form>
-            <SortableContext items={getInboxItems().map(i => i.id)} strategy={verticalListSortingStrategy}>
-              {getInboxItems().map(item => (
-                <SortableItem key={item.id} item={item} onEdit={setSelectedItem} />
-              ))}
-            </SortableContext>
-          </Bin>
-
-          {/* NEXT ACTIONS */}
-          <Bin id="next" title="Next Actions" icon={Zap} canDrop={false}>
-            {getNextActions().map(item => (
-              <ItemRow key={item.id} item={item} />
-            ))}
-          </Bin>
-
-          {/* PROJECTS */}
-          <ContextMenu>
-            <ContextMenuTrigger className="flex flex-col h-full">
-              <Bin id="projects" title="Projects" icon={Layers} canDrop={false}>
-                {projects.map(project => (
-                  <ProjectPane 
-                    key={project.id} 
-                    project={project} 
-                    items={items
-                      .filter(i => i.projectId === project.id && (i.status === "projects" || i.status === "done"))
-                      .sort((a, b) => (a.position || 0) - (b.position || 0))
-                    } 
-                    onEdit={setSelectedItem}
+                <div className="flex gap-1">
+                  <Input 
+                    type="date" 
+                    value={quickDate} 
+                    onChange={e => setQuickDate(e.target.value)} 
+                    className="h-7 text-[10px] p-1 font-sans"
                   />
+                  <Input 
+                    type="time" 
+                    value={quickTime} 
+                    onChange={e => setQuickTime(e.target.value)} 
+                    className="h-7 text-[10px] p-1 font-sans"
+                  />
+                </div>
+                <Button type="submit" size="sm" className="w-full h-7 text-xs">Add</Button>
+              </form>
+              <SortableContext items={getInboxItems().map(i => i.id)} strategy={verticalListSortingStrategy}>
+                {getInboxItems().map(item => (
+                  <SortableItem key={item.id} item={item} onEdit={setSelectedItem} />
                 ))}
-                {projects.length === 0 && (
-                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground/30 text-xs italic">
-                    <p>No projects</p>
-                    <p className="text-[10px] mt-1">Right-click to create</p>
-                  </div>
-                )}
-              </Bin>
-            </ContextMenuTrigger>
-            <ContextMenuContent>
-              <ContextMenuItem onClick={() => setShowProjectDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" /> New Project
-              </ContextMenuItem>
-            </ContextMenuContent>
-          </ContextMenu>
+              </SortableContext>
+            </Bin>
 
-          {/* SOMEDAY */}
-          <Bin id="someday" title="Someday" icon={Archive}>
-            <SortableContext items={getSomedayItems().map(i => i.id)} strategy={verticalListSortingStrategy}>
-              {getSomedayItems().map(item => (
-                <SortableItem key={item.id} item={item} onEdit={setSelectedItem} />
+            {/* CALENDAR */}
+            <Bin id="calendar" title="Calendar" icon={CalendarIcon} canDrop={false}>
+              {getCalendarItems().map(item => (
+                <ItemRow key={item.id} item={item} onEdit={setSelectedItem} />
               ))}
-            </SortableContext>
-          </Bin>
+            </Bin>
 
-          {/* CALENDAR */}
-          <Bin id="calendar" title="Calendar" icon={CalendarIcon} canDrop={false}>
-            {getCalendarItems().map(item => (
-              <ItemRow key={item.id} item={item} onEdit={setSelectedItem} />
-            ))}
-          </Bin>
+            {/* NEXT ACTIONS */}
+            <Bin id="next" title="Next Actions" icon={Zap} canDrop={false}>
+              {getNextActions().map(item => (
+                <ItemRow key={item.id} item={item} />
+              ))}
+            </Bin>
+
+            {/* SOMEDAY */}
+            <Bin id="someday" title="Someday" icon={Archive}>
+              <SortableContext items={getSomedayItems().map(i => i.id)} strategy={verticalListSortingStrategy}>
+                {getSomedayItems().map(item => (
+                  <SortableItem key={item.id} item={item} onEdit={setSelectedItem} />
+                ))}
+              </SortableContext>
+            </Bin>
+          </div>
+
+          {/* BOTTOM ROW: Projects */}
+          <div className="flex-1 min-h-[400px]">
+            <ContextMenu>
+              <ContextMenuTrigger className="flex flex-col h-full">
+                <Bin id="projects" title="Projects" icon={Layers} canDrop={false} className="h-full">
+                  <div className="flex flex-row gap-4 h-full overflow-x-auto pb-2">
+                    {projects.map(project => (
+                      <div key={project.id} className="min-w-[300px] flex-shrink-0 h-fit">
+                        <ProjectPane 
+                          project={project} 
+                          items={items
+                            .filter(i => i.projectId === project.id && (i.status === "projects" || i.status === "done"))
+                            .sort((a, b) => (a.position || 0) - (b.position || 0))
+                          } 
+                          onEdit={setSelectedItem}
+                        />
+                      </div>
+                    ))}
+                    {projects.length === 0 && (
+                      <div className="h-full w-full flex flex-col items-center justify-center text-muted-foreground/30 text-xs italic">
+                        <p>No projects</p>
+                        <p className="text-[10px] mt-1">Right-click to create</p>
+                      </div>
+                    )}
+                  </div>
+                </Bin>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem onClick={() => setShowProjectDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" /> New Project
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+          </div>
         </div>
 
         <DragOverlay>
