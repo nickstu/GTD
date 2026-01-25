@@ -1211,17 +1211,16 @@
                 html += '<div class="item-details">';
             }
             
-            html += '<div class="item-title">' + item.title + '</div>';
-            
-            if (item.dueDatetime || item.startTime) {
-                html += '<div class="item-meta">';
-                if (item.dueDatetime) {
-                    html += '<span class="item-date">📅 ' + formatDate(item.dueDatetime);
-                    if (item.startTime) html += ' ' + item.startTime;
-                    html += '</span>';
-                }
-                html += '</div>';
+            // Show date before title if present
+            let titleHtml = '';
+            if (item.dueDatetime) {
+                titleHtml += '<span style="color: #6c757d; font-size: 11px; margin-right: 6px;">📅 ' + formatDate(item.dueDatetime);
+                if (item.startTime) titleHtml += ' ' + item.startTime;
+                titleHtml += '</span>';
             }
+            titleHtml += item.title;
+            
+            html += '<div class="item-title">' + titleHtml + '</div>';
             
             if (showCheckbox) {
                 html += '</div></div>';
