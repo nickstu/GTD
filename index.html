@@ -443,7 +443,9 @@
         }
         
         .project-pane {
+            width: 300px;
             min-width: 300px;
+            max-width: 300px;
             flex-shrink: 0;
             background: #2a2f3a;
             border: 1px solid #3a3f4b;
@@ -705,13 +707,16 @@
                 flex: none;
             }
             
-            /* Move account pane to the end on mobile */
-            .grid-row .pane:last-child {
-                order: 999;
-            }
+            /* Reorder panes on mobile: inbox, calendar, next actions, projects, someday, user */
+            .grid-row .pane:nth-child(1) { order: 1; } /* Inbox */
+            .grid-row .pane:nth-child(2) { order: 2; } /* Calendar */
+            .grid-row .pane:nth-child(3) { order: 3; } /* Next Actions */
+            .grid-row .pane:nth-child(4) { order: 5; } /* Someday */
+            .grid-row .pane:nth-child(5) { order: 6; } /* Account */
             
             .projects-wrapper {
                 flex: none;
+                order: 4; /* Projects after Next Actions */
             }
             
             /* Stack projects vertically */
@@ -725,9 +730,9 @@
             
             .pane {
                 width: 100%;
-                min-height: 300px;
+                min-height: auto;
                 height: auto;
-                max-height: 500px;
+                max-height: none;
             }
             
             .project-pane {
