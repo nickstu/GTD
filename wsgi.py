@@ -335,6 +335,7 @@ def get_html():
             margin-bottom: 8px;
             cursor: move;
             transition: all 0.2s;
+            position: relative;
         }
         
         .item:hover {
@@ -344,6 +345,46 @@ def get_html():
         
         .item.dragging {
             opacity: 0.5;
+        }
+        
+        .drop-target-hover {
+            background: #3a4555 !important;
+            border-color: #0d6efd !important;
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.3) !important;
+        }
+        
+        .drop-target-project {
+            background: #2a3545 !important;
+            border: 2px dashed #0d6efd !important;
+        }
+        
+        .insert-indicator {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #0d6efd;
+            border-radius: 2px;
+            box-shadow: 0 0 8px rgba(13, 110, 253, 0.6);
+            animation: pulse 0.6s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scaleY(1); }
+            50% { opacity: 0.7; transform: scaleY(1.5); }
+        }
+        
+        .pane-content.drop-zone-active {
+            background: rgba(13, 110, 253, 0.05);
+            border: 2px dashed #0d6efd;
+            border-radius: 8px;
+        }
+        
+        .project-pane.drop-zone-active {
+            background: rgba(13, 110, 253, 0.08) !important;
+            border: 2px solid #0d6efd !important;
         }
         
         .item-title {
@@ -422,6 +463,7 @@ def get_html():
             border-radius: 8px;
             padding: 12px;
             height: fit-content;
+            position: relative;
         }
         
         .project-header {
@@ -1068,6 +1110,8 @@ def get_html():
                 el.addEventListener('dragstart', handleDragStart);
                 el.addEventListener('dragend', handleDragEnd);
                 el.addEventListener('dragover', handleDragOver);
+                el.addEventListener('dragenter', handleDragEnter);
+                el.addEventListener('dragleave', handleDragLeave);
                 el.addEventListener('drop', handleDrop);
                 el.addEventListener('click', function(e) {
                     if (!e.target.classList.contains('checkbox')) {
@@ -1079,11 +1123,15 @@ def get_html():
             // Attach drop listeners
             document.querySelectorAll('[data-status]').forEach(el => {
                 el.addEventListener('dragover', handleDragOver);
+                el.addEventListener('dragenter', handleDragEnter);
+                el.addEventListener('dragleave', handleDragLeave);
                 el.addEventListener('drop', handleDrop);
             });
             
             document.querySelectorAll('[data-project-id]').forEach(el => {
                 el.addEventListener('dragover', handleDragOver);
+                el.addEventListener('dragenter', handleDragEnter);
+                el.addEventListener('dragleave', handleDragLeave);
                 el.addEventListener('drop', handleDrop);
             });
         }
@@ -1095,7 +1143,76 @@ def get_html():
         
         function handleDragEnd(e) {
             e.target.classList.remove('dragging');
+            // Clean up all visual feedback
+            document.querySelectorAll('.drop-target-hover, .drop-target-project, .drop-zone-active').forEach(el => {
+                el.classList.remove('drop-target-hover', 'drop-target-project', 'drop-zone-active');
+                el._dragDepth = 0; // Reset drag depth counters
+            });
+            document.querySelectorAll('.insert-indicator').forEach(el => el.remove());
             draggedItem = null;
+        }
+        
+        function handleDragEnter(e) {
+            if (!draggedItem) return;
+            e.preventDefault();
+            
+            const target = e.currentTarget;
+            const item = data.items.find(i => i.id === draggedItem);
+            if (!item) return;
+            
+            // Track drag depth to prevent flickering from child elements
+            if (!target._dragDepth) target._dragDepth = 0;
+            target._dragDepth++;
+            
+            // Only apply visual feedback on first enter
+            if (target._dragDepth !== 1) return;
+            
+            // Highlight drop zones
+            if (target.classList.contains('item')) {
+                const targetItemId = parseInt(target.dataset.id);
+                const targetItem = data.items.find(i => i.id === targetItemId);
+                
+                // Check if this would be a reorder operation
+                if (targetItem && targetItem.projectId && item.projectId === targetItem.projectId && item.status === 'projects') {
+                    // Show insertion indicator for reordering - place it at top of target item
+                    const existingIndicator = target.querySelector('.insert-indicator');
+                    if (!existingIndicator) {
+                        const indicator = document.createElement('div');
+                        indicator.className = 'insert-indicator';
+                        indicator.style.top = '-4px';
+                        target.appendChild(indicator);
+                    }
+                } else if (targetItem && targetItem.projectId) {
+                    // Show it will be added to this project
+                    target.classList.add('drop-target-hover');
+                }
+            } else if (target.dataset.status || target.dataset.projectId) {
+                // Highlight panes
+                if (target.classList.contains('pane-content')) {
+                    target.classList.add('drop-zone-active');
+                } else if (target.classList.contains('project-pane')) {
+                    target.classList.add('drop-zone-active');
+                }
+            }
+        }
+        
+        function handleDragLeave(e) {
+            if (!draggedItem) return;
+            const target = e.currentTarget;
+            
+            // Track drag depth to prevent flickering from child elements
+            if (!target._dragDepth) target._dragDepth = 0;
+            target._dragDepth--;
+            
+            // Only remove visual feedback when fully leaving the element
+            if (target._dragDepth > 0) return;
+            
+            // Remove highlights
+            target.classList.remove('drop-target-hover', 'drop-target-project', 'drop-zone-active');
+            
+            // Remove insertion indicators from this element
+            const indicators = target.querySelectorAll('.insert-indicator');
+            indicators.forEach(ind => ind.remove());
         }
         
         function handleDragOver(e) {
@@ -1105,6 +1222,13 @@ def get_html():
         async function handleDrop(e) {
             e.preventDefault();
             e.stopPropagation();  // Prevent bubbling to project pane
+            
+            // Clean up visual feedback
+            document.querySelectorAll('.drop-target-hover, .drop-target-project, .drop-zone-active').forEach(el => {
+                el.classList.remove('drop-target-hover', 'drop-target-project', 'drop-zone-active');
+            });
+            document.querySelectorAll('.insert-indicator').forEach(el => el.remove());
+            
             if (!draggedItem) return;
             
             const item = data.items.find(i => i.id === draggedItem);
