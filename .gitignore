@@ -3,6 +3,9 @@ data.json
 data_*.json
 users.json
 
+# Local deployment instructions
+DEPLOY.md
+
 # Python
 __pycache__/
 *.py[cod]
