@@ -94,21 +94,6 @@ export function ItemDialog({ item, open, onClose }: ItemDialogProps) {
               </SelectContent>
             </Select>
           </div>
-
-          <div className="grid gap-2">
-            <Label>Status</Label>
-            <Select 
-              value={formData.status || "inbox"} 
-              onValueChange={val => setFormData({...formData, status: val})}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="inbox">Inbox</SelectItem>
-                <SelectItem value="someday">Someday</SelectItem>
-                <SelectItem value="projects">In Project</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
         <DialogFooter className="flex justify-between sm:justify-between w-full">
