@@ -1456,13 +1456,25 @@ def get_html():
                 
                 // Check if this would be a reorder operation
                 if (targetItem && targetItem.projectId && item.projectId === targetItem.projectId && item.status === 'projects') {
-                    // Show insertion indicator for reordering - place it at top of target item
+                    // Calculate which half of the item we're over
+                    const rect = target.getBoundingClientRect();
+                    const mouseY = e.clientY;
+                    const itemMiddle = rect.top + rect.height / 2;
+                    const insertBefore = mouseY < itemMiddle;
+                    
+                    // Store the drop position on the element
+                    target._dropBefore = insertBefore;
+                    
+                    // Show insertion indicator for reordering
                     const existingIndicator = target.querySelector('.insert-indicator');
                     if (!existingIndicator) {
                         const indicator = document.createElement('div');
                         indicator.className = 'insert-indicator';
-                        indicator.style.top = '-4px';
+                        indicator.style.top = insertBefore ? '-4px' : 'calc(100% + 4px)';
                         target.appendChild(indicator);
+                    } else {
+                        // Update existing indicator position
+                        existingIndicator.style.top = insertBefore ? '-4px' : 'calc(100% + 4px)';
                     }
                 } else if (targetItem && targetItem.projectId) {
                     // Show it will be added to this project
@@ -1499,6 +1511,30 @@ def get_html():
         
         function handleDragOver(e) {
             e.preventDefault();
+            
+            // Update indicator position for items during reorder
+            if (!draggedItem) return;
+            const target = e.currentTarget;
+            
+            if (target.classList.contains('item')) {
+                const item = data.items.find(i => i.id === draggedItem);
+                const targetItemId = parseInt(target.dataset.id);
+                const targetItem = data.items.find(i => i.id === targetItemId);
+                
+                if (item && targetItem && targetItem.projectId && item.projectId === targetItem.projectId && item.status === 'projects') {
+                    const rect = target.getBoundingClientRect();
+                    const mouseY = e.clientY;
+                    const itemMiddle = rect.top + rect.height / 2;
+                    const insertBefore = mouseY < itemMiddle;
+                    
+                    target._dropBefore = insertBefore;
+                    
+                    const indicator = target.querySelector('.insert-indicator');
+                    if (indicator) {
+                        indicator.style.top = insertBefore ? '-4px' : 'calc(100% + 4px)';
+                    }
+                }
+            }
         }
         
         async function handleDrop(e) {
@@ -1531,21 +1567,38 @@ def get_html():
                         .sort((a, b) => (a.position || 0) - (b.position || 0));
                     
                     const oldIndex = projectItems.findIndex(i => i.id === draggedItem);
-                    const newIndex = projectItems.findIndex(i => i.id === targetItemId);
+                    let targetIndex = projectItems.findIndex(i => i.id === targetItemId);
                     
-                    if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-                        // Build new order: remove dragged item, then insert at target position
-                        const reordered = projectItems.filter(i => i.id !== draggedItem);
-                        const draggedItemObj = projectItems[oldIndex];
-                        reordered.splice(newIndex, 0, draggedItemObj);
+                    // Determine if we should insert before or after based on drop position
+                    const insertBefore = target._dropBefore;
+                    
+                    if (oldIndex !== -1 && targetIndex !== -1) {
+                        // Calculate the actual insertion position
+                        // If dropping in the bottom half, we want to insert after the target
+                        if (!insertBefore) {
+                            targetIndex++;
+                        }
                         
-                        // Update all positions sequentially
-                        for (let i = 0; i < reordered.length; i++) {
-                            await fetch('/api/items/' + reordered[i].id, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ position: i })
-                            });
+                        // Adjust target index if we're moving an item down (removing it shifts indices)
+                        if (oldIndex < targetIndex) {
+                            targetIndex--;
+                        }
+                        
+                        // Only reorder if position actually changes
+                        if (oldIndex !== targetIndex) {
+                            // Build new order: remove dragged item, then insert at target position
+                            const reordered = projectItems.filter(i => i.id !== draggedItem);
+                            const draggedItemObj = projectItems[oldIndex];
+                            reordered.splice(targetIndex, 0, draggedItemObj);
+                            
+                            // Update all positions sequentially
+                            for (let i = 0; i < reordered.length; i++) {
+                                await fetch('/api/items/' + reordered[i].id, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ position: i })
+                                });
+                            }
                         }
                     }
                     await loadData();
