@@ -16,7 +16,10 @@ export function ItemRow({ item, project, onEdit, showStatus = false }: ItemRowPr
 
   const handleComplete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    updateItem.mutate({ id: item.id, status: item.status === "done" ? "next" : "done" });
+    // Toggle between done and its previous status
+    // If it's done, we move it back to its project or inbox
+    // For now, simple toggle of status but keep the projectId
+    updateItem.mutate({ id: item.id, status: item.status === "done" ? (item.projectId ? "projects" : "inbox") : "done" });
   };
 
   return (

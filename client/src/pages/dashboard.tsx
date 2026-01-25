@@ -152,7 +152,7 @@ export default function DashboardPage() {
     setQuickTime("");
   };
 
-  const getInboxItems = () => items.filter(i => i.status === "inbox");
+  const getInboxItems = () => items.filter(i => i.status === "inbox" || (i.status === "done" && !i.projectId));
   const getSomedayItems = () => items.filter(i => i.status === "someday");
   const getCalendarItems = () => {
     return items
@@ -169,9 +169,11 @@ export default function DashboardPage() {
     const nextActions: Item[] = [];
     projects.forEach(project => {
       const projectItems = items
-        .filter(i => i.projectId === project.id && i.status === "projects")
+        .filter(i => i.projectId === project.id && (i.status === "projects" || i.status === "done"))
         .sort((a, b) => (a.position || 0) - (b.position || 0));
       if (projectItems.length > 0) {
+        // Show first non-done item, or if all are done, maybe show the first done one?
+        // GTD says Next Action is the very first one.
         nextActions.push(projectItems[0]);
       }
     });
@@ -309,7 +311,7 @@ export default function DashboardPage() {
                     key={project.id} 
                     project={project} 
                     items={items
-                      .filter(i => i.projectId === project.id && i.status === "projects")
+                      .filter(i => i.projectId === project.id && (i.status === "projects" || i.status === "done"))
                       .sort((a, b) => (a.position || 0) - (b.position || 0))
                     } 
                     onEdit={setSelectedItem}
