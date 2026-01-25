@@ -1155,11 +1155,19 @@
                 });
         }
         
+        function getTodayDateString() {
+            // Get today's date in local timezone as YYYY-MM-DD
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
         function getNextActions() {
             const candidates = [];
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayStr = today.toISOString().split('T')[0];
+            const todayStr = getTodayDateString();
+            console.log('Today string for comparison:', todayStr, 'Full date object:', new Date());
             
             // Step 1: Get first non-done item from each project
             data.projects.forEach(project => {
@@ -1176,7 +1184,8 @@
             const candidateIds = new Set(candidates.map(c => c.id));
             data.items.forEach(item => {
                 if (item.dueDatetime && !item.done && !candidateIds.has(item.id)) {
-                    const itemDate = item.dueDatetime.split('T')[0];
+                    const itemDate = item.dueDatetime.includes('T') ? item.dueDatetime.split('T')[0] : item.dueDatetime;
+                    console.log('Item', item.title, 'date:', itemDate, 'equals today?', itemDate === todayStr);
                     if (itemDate === todayStr) {
                         const project = item.projectId ? data.projects.find(p => p.id === item.projectId) : null;
                         candidates.push({ ...item, project });
@@ -1184,13 +1193,18 @@
                 }
             });
             
+            console.log('Candidates before filtering:', candidates.length);
+            
             // Step 3: Filter candidates to only include items with no date OR today's date
             const nextActions = candidates.filter(item => {
                 if (!item.dueDatetime) return true; // No date = include
-                const itemDate = item.dueDatetime.split('T')[0];
-                return itemDate === todayStr; // Only include if date is today
+                const itemDate = item.dueDatetime.includes('T') ? item.dueDatetime.split('T')[0] : item.dueDatetime;
+                const matches = itemDate === todayStr;
+                console.log('Filtering', item.title, 'itemDate:', itemDate, 'matches today?', matches);
+                return matches; // Only include if date is today
             });
             
+            console.log('Next actions after filtering:', nextActions.length);
             return nextActions;
         }
         
@@ -1214,14 +1228,18 @@
             // Show date before title if present
             let titleHtml = '';
             if (item.dueDatetime) {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const todayStr = today.toISOString().split('T')[0];
-                const itemDate = item.dueDatetime.split('T')[0];
+                const todayStr = getTodayDateString();
+                const itemDate = item.dueDatetime.includes('T') ? item.dueDatetime.split('T')[0] : item.dueDatetime;
                 const isToday = itemDate === todayStr;
                 
+                console.log('Rendering item', item.title, '- dueDatetime:', item.dueDatetime, 'itemDate:', itemDate, 'todayStr:', todayStr, 'isToday:', isToday);
+                
                 titleHtml += '<span style="color: #6c757d; font-size: 11px; margin-right: 6px;">📅 ';
-                titleHtml += isToday ? 'Today' : formatDate(item.dueDatetime);
+                if (isToday) {
+                    titleHtml += '<span style="color: #ff8c00;">Today</span>';
+                } else {
+                    titleHtml += formatDate(item.dueDatetime);
+                }
                 if (item.startTime) titleHtml += ' ' + item.startTime;
                 titleHtml += '</span>';
             }
