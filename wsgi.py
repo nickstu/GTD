@@ -1117,8 +1117,8 @@ def get_html():
                 const targetItemId = parseInt(target.dataset.id);
                 const targetItem = data.items.find(i => i.id === targetItemId);
                 
-                // If both items are in the same project, reorder
-                if (targetItem && targetItem.projectId && item.projectId === targetItem.projectId) {
+                // Only reorder if BOTH items are already in the same project (dragging within same project)
+                if (targetItem && targetItem.projectId && item.projectId === targetItem.projectId && item.status === 'projects') {
                     const projectId = targetItem.projectId;
                     const projectItems = data.items
                         .filter(i => i.projectId === projectId && i.status === 'projects')
@@ -1142,6 +1142,21 @@ def get_html():
                             });
                         }
                     }
+                    await loadData();
+                    return;
+                }
+                
+                // If dropped on item but NOT reordering, treat it as dropping into that item's project
+                if (targetItem && targetItem.projectId) {
+                    const projectId = targetItem.projectId;
+                    const projectItems = data.items.filter(i => i.projectId === projectId && i.status === 'projects');
+                    const maxPos = projectItems.length > 0 ? Math.max(...projectItems.map(i => i.position || 0)) : -1;
+                    
+                    await fetch('/api/items/' + draggedItem, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'projects', projectId, position: maxPos + 1 })
+                    });
                     await loadData();
                     return;
                 }
