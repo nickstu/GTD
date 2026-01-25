@@ -59,6 +59,11 @@ export function ItemRow({ item, project, onEdit, showStatus = false }: ItemRowPr
               )}>
                 <Clock className="w-2.5 h-2.5" />
                 {format(new Date(item.dueDatetime), "MMM d")}
+                {item.startTime && (
+                  <span className="ml-1 opacity-80">
+                    {item.startTime}
+                  </span>
+                )}
               </span>
             )}
           </div>
