@@ -465,8 +465,23 @@
             color: #6c757d;
             margin-bottom: 12px;
             letter-spacing: 0.5px;
-            cursor: move;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .drag-handle {
+            cursor: move;
+            font-size: 16px;
+            color: #6c757d;
+            opacity: 0.6;
+            user-select: none;
+            line-height: 1;
+        }
+        
+        .drag-handle:hover {
+            opacity: 1;
         }
         
         .project-items {
@@ -1314,8 +1329,11 @@
                     .filter(i => i.projectId === project.id && i.status === 'projects')
                     .sort((a, b) => (a.position || 0) - (b.position || 0));
                 
-                projectsHtml += '<div class="project-pane" draggable="true" data-project-id="' + project.id + '">';
-                projectsHtml += '<div class="project-header" onclick="editProject(' + project.id + ')">' + project.name + '</div>';
+                projectsHtml += '<div class="project-pane" data-project-id="' + project.id + '">';
+                projectsHtml += '<div class="project-header">';
+                projectsHtml += '<span class="drag-handle" draggable="true">⋮⋮</span>';
+                projectsHtml += '<span onclick="editProject(' + project.id + ')" style="flex: 1; cursor: pointer;">' + project.name + '</span>';
+                projectsHtml += '</div>';
                 projectsHtml += '<div class="project-items">';
                 projectsHtml += projectItems.map(i => renderItem(i)).join('');
                 if (projectItems.length === 0) {
@@ -1332,13 +1350,14 @@
             document.getElementById('projects-content').innerHTML = projectsHtml;
             
             // Attach project drag listeners
-            document.querySelectorAll('.project-pane').forEach(el => {
+            document.querySelectorAll('.drag-handle').forEach(el => {
+                const projectPane = el.closest('.project-pane');
                 el.addEventListener('dragstart', handleProjectDragStart);
                 el.addEventListener('dragend', handleProjectDragEnd);
-                el.addEventListener('dragover', handleProjectDragOver);
-                el.addEventListener('dragenter', handleProjectDragEnter);
-                el.addEventListener('dragleave', handleProjectDragLeave);
-                el.addEventListener('drop', handleProjectDrop);
+                projectPane.addEventListener('dragover', handleProjectDragOver);
+                projectPane.addEventListener('dragenter', handleProjectDragEnter);
+                projectPane.addEventListener('dragleave', handleProjectDragLeave);
+                projectPane.addEventListener('drop', handleProjectDrop);
             });
             
             // Update project selector in edit modal
@@ -1394,19 +1413,19 @@
         
         // Project drag and drop handlers
         function handleProjectDragStart(e) {
-            // Only allow dragging from the project header
-            if (!e.target.classList.contains('project-header')) {
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-            }
-            draggedProject = parseInt(e.currentTarget.dataset.projectId);
-            e.currentTarget.classList.add('dragging');
+            const projectPane = e.target.closest('.project-pane');
+            if (!projectPane) return;
+            
+            draggedProject = parseInt(projectPane.dataset.projectId);
+            projectPane.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
         }
         
         function handleProjectDragEnd(e) {
-            e.currentTarget.classList.remove('dragging');
+            const projectPane = e.target.closest('.project-pane');
+            if (projectPane) {
+                projectPane.classList.remove('dragging');
+            }
             document.querySelectorAll('.project-pane').forEach(el => {
                 el.classList.remove('drop-zone-active');
                 el._dragDepth = 0;
