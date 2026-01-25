@@ -1157,6 +1157,11 @@
         
         function getNextActions() {
             const nextActions = [];
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayStr = today.toISOString().split('T')[0];
+            
+            // Get first non-done item from each project
             data.projects.forEach(project => {
                 const projectItems = data.items
                     .filter(i => i.projectId === project.id && i.status === 'projects')
@@ -1167,6 +1172,19 @@
                     nextActions.push({ ...firstUndone, project });
                 }
             });
+            
+            // Add all items with today's date (if not already in next actions)
+            const nextActionIds = new Set(nextActions.map(a => a.id));
+            data.items.forEach(item => {
+                if (item.dueDatetime && !item.done && !nextActionIds.has(item.id)) {
+                    const itemDate = item.dueDatetime.split('T')[0];
+                    if (itemDate === todayStr) {
+                        const project = item.projectId ? data.projects.find(p => p.id === item.projectId) : null;
+                        nextActions.push({ ...item, project });
+                    }
+                }
+            });
+            
             return nextActions;
         }
         
