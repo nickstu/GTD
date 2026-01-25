@@ -65,13 +65,32 @@ export function useDeleteProject() {
 
   return useMutation({
     mutationFn: async (id: number) => {
+      // First move active items to inbox
+      const itemsUrl = api.items.list.path;
+      const itemsRes = await fetch(itemsUrl, { credentials: "include" });
+      if (itemsRes.ok) {
+        const items = await itemsRes.json();
+        const projectItems = items.filter((i: any) => i.projectId === id && i.status !== "done");
+        
+        for (const item of projectItems) {
+          const updateUrl = buildUrl(api.items.update.path, { id: item.id });
+          await fetch(updateUrl, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "inbox", projectId: null }),
+            credentials: "include",
+          });
+        }
+      }
+
       const url = buildUrl(api.projects.delete.path, { id });
       const res = await fetch(url, { method: "DELETE", credentials: "include" });
       if (!res.ok) throw new Error("Failed to delete project");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.projects.list.path] });
-      toast({ title: "Project deleted" });
+      queryClient.invalidateQueries({ queryKey: [api.items.list.path] });
+      toast({ title: "Project deleted", description: "Active items moved to Inbox." });
     },
   });
 }

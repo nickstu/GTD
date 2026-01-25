@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useUpdateItem, useDeleteItem } from "@/hooks/use-items";
-import { useProjects, useCreateProject, useUpdateProject } from "@/hooks/use-projects";
+import { useProjects, useCreateProject, useUpdateProject, useDeleteProject } from "@/hooks/use-projects";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ItemDialogProps {
@@ -112,6 +112,7 @@ export function ProjectDialog({ project, open, onClose }: { project?: Project | 
   const [name, setName] = useState("");
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
+  const deleteProject = useDeleteProject();
 
   useEffect(() => {
     if (project) {
@@ -132,6 +133,12 @@ export function ProjectDialog({ project, open, onClose }: { project?: Project | 
     onClose();
   };
 
+  const handleDelete = async () => {
+    if (!project) return;
+    await deleteProject.mutateAsync(project.id);
+    onClose();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md font-sans">
@@ -142,9 +149,14 @@ export function ProjectDialog({ project, open, onClose }: { project?: Project | 
             <Input value={name} onChange={e => setName(e.target.value)} placeholder="Name your project..." />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave}>{project ? "Save" : "Create"}</Button>
+        <DialogFooter className="flex justify-between sm:justify-between w-full">
+          {project ? (
+            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+          ) : <div></div>}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button onClick={handleSave}>{project ? "Save" : "Create"}</Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
