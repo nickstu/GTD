@@ -12,31 +12,7 @@
             background: #1a1d23; 
             color: #e4e6eb;
         }
-        .container { max-width: 1800px; margin: 0 auto; }
-        header { margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
-        h1 { font-size: 24px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
-        
-        .user-info { 
-            display: flex; 
-            align-items: center; 
-            gap: 12px; 
-            font-size: 14px; 
-            color: #adb5bd;
-        }
-        
-        .logout-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        
-        .logout-btn:hover {
-            background: #bb2d3b;
-        }
+        .container { max-width: 1800px; margin: 0 auto; padding: 20px; }
         
         #loginModal {
             position: fixed;
@@ -243,7 +219,7 @@
             display: block;
         }
         
-        .grid-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .grid-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
         .projects-row { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 10px; }
         
         .pane {
@@ -623,28 +599,17 @@
                 padding: 8px;
             }
             
-            header {
-                flex-direction: column;
-                align-items: stretch;
-                padding: 12px;
-                gap: 8px;
-            }
-            
-            header h1 {
-                font-size: 20px;
-            }
-            
-            .user-info {
-                justify-content: space-between;
-                width: 100%;
-            }
-            
             /* Stack grid vertically */
             .grid-row {
                 display: flex;
                 flex-direction: column;
                 gap: 16px;
                 margin-bottom: 16px;
+            }
+            
+            /* Move account pane to the end on mobile */
+            .grid-row .pane:last-child {
+                order: 999;
             }
             
             /* Stack projects vertically */
@@ -713,16 +678,7 @@
     </div>
     
     <div id="appContent" class="container">
-        <header>
-            <h1>GTD</h1>
-            <div class="user-info">
-                <button id="adminBtn" class="admin-btn" onclick="showAdminPanel()" style="display:none;">Admin Panel</button>
-                <span>👤 <span id="currentUser"></span></span>
-                <button class="logout-btn" onclick="logout()">Logout</button>
-            </div>
-        </header>
-        
-        <!-- Top Row: Inbox, Calendar, Next Actions, Someday -->
+        <!-- Top Row: Inbox, Calendar, Next Actions, Someday, Account -->
         <div class="grid-row">
             <div class="pane" data-status="inbox">
                 <div class="pane-header">📥 Inbox</div>
@@ -748,8 +704,33 @@
             </div>
             
             <div class="pane" data-status="someday">
-                <div class="pane-header">📦 Someday</div>
+                <div class="pane-header">💭 Someday/Maybe</div>
                 <div class="pane-content" id="someday-content"></div>
+            </div>
+            
+            <div class="pane">
+                <div class="pane-header">👤 Account</div>
+                <div class="pane-content" style="padding: 16px;">
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-size: 12px; color: #adb5bd; margin-bottom: 4px;">Logged in as</div>
+                        <div style="font-weight: 600; font-size: 14px;" id="currentUser"></div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-size: 12px; color: #adb5bd; margin-bottom: 8px;">Stats</div>
+                        <div style="font-size: 13px; line-height: 1.8;">
+                            <div>📊 Total Items: <span id="statsItems" style="font-weight: 600;">0</span></div>
+                            <div>✅ Done: <span id="statsDone" style="font-weight: 600;">0</span></div>
+                            <div>📁 Projects: <span id="statsProjects" style="font-weight: 600;">0</span></div>
+                            <div>⏰ Scheduled: <span id="statsScheduled" style="font-weight: 600;">0</span></div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button id="adminBtn" class="btn btn-secondary" onclick="showAdminPanel()" style="display:none; width: 100%; padding: 8px;">Admin Panel</button>
+                        <button class="btn btn-danger" onclick="logout()" style="width: 100%; padding: 8px;">Logout</button>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -1156,6 +1137,21 @@
                 el.addEventListener('dragleave', handleDragLeave);
                 el.addEventListener('drop', handleDrop);
             });
+            
+            // Update stats
+            updateStats();
+        }
+        
+        function updateStats() {
+            const totalItems = data.items.length;
+            const doneItems = data.items.filter(i => i.done).length;
+            const totalProjects = data.projects.length;
+            const scheduledItems = data.items.filter(i => i.dueDatetime).length;
+            
+            document.getElementById('statsItems').textContent = totalItems;
+            document.getElementById('statsDone').textContent = doneItems;
+            document.getElementById('statsProjects').textContent = totalProjects;
+            document.getElementById('statsScheduled').textContent = scheduledItems;
         }
         
         function handleDragStart(e) {
