@@ -108,13 +108,26 @@ export function ItemDialog({ item, open, onClose }: ItemDialogProps) {
   );
 }
 
-export function ProjectDialog({ open, onClose }: { open: boolean, onClose: () => void }) {
+export function ProjectDialog({ project, open, onClose }: { project?: Project | null, open: boolean, onClose: () => void }) {
   const [name, setName] = useState("");
   const createProject = useCreateProject();
+  const updateProject = useUpdateProject();
+
+  useEffect(() => {
+    if (project) {
+      setName(project.name);
+    } else {
+      setName("");
+    }
+  }, [project, open]);
 
   const handleSave = async () => {
     if (!name.trim()) return;
-    await createProject.mutateAsync({ name });
+    if (project) {
+      await updateProject.mutateAsync({ id: project.id, name });
+    } else {
+      await createProject.mutateAsync({ name });
+    }
     setName("");
     onClose();
   };
@@ -122,7 +135,7 @@ export function ProjectDialog({ open, onClose }: { open: boolean, onClose: () =>
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md font-sans">
-        <DialogHeader><DialogTitle>New Project</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{project ? "Edit Project" : "New Project"}</DialogTitle></DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label>Project Name</Label>
@@ -131,7 +144,7 @@ export function ProjectDialog({ open, onClose }: { open: boolean, onClose: () =>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave}>Create</Button>
+          <Button onClick={handleSave}>{project ? "Save" : "Create"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -68,12 +68,15 @@ function Bin({ id, title, icon: Icon, children, canDrop = true, className }: Bin
   );
 }
 
-function ProjectPane({ project, items, onEdit }: { project: Project, items: Item[], onEdit: (item: Item) => void }) {
+function ProjectPane({ project, items, onEdit, onEditProject }: { project: Project, items: Item[], onEdit: (item: Item) => void, onEditProject: (project: Project) => void }) {
   const { setNodeRef } = useDroppable({ id: `project-${project.id}` });
 
   return (
     <div ref={setNodeRef} className="border rounded-lg bg-muted/20 p-2 space-y-1">
-      <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1 px-1">
+      <div 
+        className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1 px-1 cursor-pointer hover:text-primary transition-colors"
+        onClick={() => onEditProject(project)}
+      >
         {project.name}
       </div>
       <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
@@ -119,8 +122,19 @@ export default function DashboardPage() {
   const { mutateAsync: createProject } = useCreateProject();
   
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [showProjectDialog, setShowProjectDialog] = useState(false);
+
+  const handleEditProject = (project: Project) => {
+    setSelectedProject(project);
+    setShowProjectDialog(true);
+  };
+
+  const handleNewProject = () => {
+    setSelectedProject(null);
+    setShowProjectDialog(true);
+  };
   
   // Quick capture state
   const [quickTitle, setQuickTitle] = useState("");
@@ -336,6 +350,7 @@ export default function DashboardPage() {
                             .sort((a, b) => (a.position || 0) - (b.position || 0))
                           } 
                           onEdit={setSelectedItem}
+                          onEditProject={handleEditProject}
                         />
                       </div>
                     ))}
@@ -349,7 +364,7 @@ export default function DashboardPage() {
                 </Bin>
               </ContextMenuTrigger>
               <ContextMenuContent>
-                <ContextMenuItem onClick={() => setShowProjectDialog(true)}>
+                <ContextMenuItem onClick={handleNewProject}>
                   <Plus className="w-4 h-4 mr-2" /> New Project
                 </ContextMenuItem>
               </ContextMenuContent>
@@ -373,6 +388,7 @@ export default function DashboardPage() {
       />
 
       <ProjectDialog 
+        project={selectedProject}
         open={showProjectDialog} 
         onClose={() => setShowProjectDialog(false)} 
       />
