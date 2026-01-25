@@ -23,7 +23,11 @@ export async function registerRoutes(
 
   app.post(api.items.create.path, async (req, res) => {
     try {
-      const input = api.items.create.input.parse(req.body);
+      const body = { ...req.body };
+      if (typeof body.dueDatetime === "string" && body.dueDatetime) {
+        body.dueDatetime = new Date(body.dueDatetime);
+      }
+      const input = api.items.create.input.parse(body);
       const item = await storage.createItem(input);
       res.status(201).json(item);
     } catch (err) {
@@ -36,7 +40,11 @@ export async function registerRoutes(
 
   app.put(api.items.update.path, async (req, res) => {
     try {
-      const input = api.items.update.input.parse(req.body);
+      const body = { ...req.body };
+      if (typeof body.dueDatetime === "string" && body.dueDatetime) {
+        body.dueDatetime = new Date(body.dueDatetime);
+      }
+      const input = api.items.update.input.parse(body);
       const item = await storage.updateItem(Number(req.params.id), input);
       res.json(item);
     } catch (err) {
