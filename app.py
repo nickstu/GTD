@@ -1439,8 +1439,6 @@ def get_html():
             e.preventDefault();
             
             const target = e.currentTarget;
-            const item = data.items.find(i => i.id === draggedItem);
-            if (!item) return;
             
             // Track drag depth to prevent flickering from child elements
             if (!target._dragDepth) target._dragDepth = 0;
@@ -1449,64 +1447,8 @@ def get_html():
             // Only apply visual feedback on first enter
             if (target._dragDepth !== 1) return;
             
-            // Highlight drop zones
-            if (target.classList.contains('item')) {
-                const targetItemId = parseInt(target.dataset.id);
-                const targetItem = data.items.find(i => i.id === targetItemId);
-                
-                // Check if this would be a reorder operation
-                if (targetItem && targetItem.projectId && item.projectId === targetItem.projectId && item.status === 'projects') {
-                    // Calculate which half of the item we're over
-                    const rect = target.getBoundingClientRect();
-                    const mouseY = e.clientY;
-                    const itemMiddle = rect.top + rect.height / 2;
-                    const insertBefore = mouseY < itemMiddle;
-                    
-                    // Get indices to check if this would actually change position
-                    const projectId = targetItem.projectId;
-                    const projectItems = data.items
-                        .filter(i => i.projectId === projectId && i.status === 'projects')
-                        .sort((a, b) => (a.position || 0) - (b.position || 0));
-                    
-                    const draggedIndex = projectItems.findIndex(i => i.id === draggedItem);
-                    const targetIndex = projectItems.findIndex(i => i.id === targetItemId);
-                    
-                    // Calculate the gap position we'd be dropping into
-                    // Gaps are numbered: 0 = before first item, 1 = after first item, etc.
-                    const targetGap = insertBefore ? targetIndex : targetIndex + 1;
-                    const currentGap = draggedIndex; // Item currently occupies the gap right after its position
-                    
-                    // Only show indicator if this would actually change position
-                    // Adjacent gaps (currentGap and currentGap+1) both mean no change
-                    const wouldChange = targetGap !== currentGap && targetGap !== currentGap + 1;
-                    
-                    // Store the drop position on the element
-                    target._dropBefore = insertBefore;
-                    target._wouldChange = wouldChange;
-                    
-                    if (wouldChange) {
-                        // Show insertion indicator for reordering
-                        const existingIndicator = target.querySelector('.insert-indicator');
-                        if (!existingIndicator) {
-                            const indicator = document.createElement('div');
-                            indicator.className = 'insert-indicator';
-                            indicator.style.top = insertBefore ? '-4px' : 'calc(100% + 4px)';
-                            target.appendChild(indicator);
-                        } else {
-                            // Update existing indicator position
-                            existingIndicator.style.top = insertBefore ? '-4px' : 'calc(100% + 4px)';
-                        }
-                    } else {
-                        // Remove indicator if no change would occur
-                        const existingIndicator = target.querySelector('.insert-indicator');
-                        if (existingIndicator) existingIndicator.remove();
-                    }
-                } else if (targetItem && targetItem.projectId) {
-                    // Show it will be added to this project
-                    target.classList.add('drop-target-hover');
-                }
-            } else if (target.dataset.status || target.dataset.projectId) {
-                // Highlight panes
+            // Highlight panes
+            if (target.dataset.status || target.dataset.projectId) {
                 if (target.classList.contains('pane-content')) {
                     target.classList.add('drop-zone-active');
                 } else if (target.classList.contains('project-pane')) {
@@ -1537,51 +1479,62 @@ def get_html():
         function handleDragOver(e) {
             e.preventDefault();
             
-            // Update indicator position for items during reorder
             if (!draggedItem) return;
-            const target = e.currentTarget;
+            const item = data.items.find(i => i.id === draggedItem);
+            if (!item) return;
             
-            if (target.classList.contains('item')) {
-                const item = data.items.find(i => i.id === draggedItem);
-                const targetItemId = parseInt(target.dataset.id);
-                const targetItem = data.items.find(i => i.id === targetItemId);
-                
-                if (item && targetItem && targetItem.projectId && item.projectId === targetItem.projectId && item.status === 'projects') {
-                    const rect = target.getBoundingClientRect();
-                    const mouseY = e.clientY;
-                    const itemMiddle = rect.top + rect.height / 2;
-                    const insertBefore = mouseY < itemMiddle;
-                    
-                    // Get indices to check if this would actually change position
-                    const projectId = targetItem.projectId;
-                    const projectItems = data.items
-                        .filter(i => i.projectId === projectId && i.status === 'projects')
-                        .sort((a, b) => (a.position || 0) - (b.position || 0));
-                    
-                    const draggedIndex = projectItems.findIndex(i => i.id === draggedItem);
-                    const targetIndex = projectItems.findIndex(i => i.id === targetItemId);
-                    
-                    const targetGap = insertBefore ? targetIndex : targetIndex + 1;
-                    const currentGap = draggedIndex;
-                    const wouldChange = targetGap !== currentGap && targetGap !== currentGap + 1;
-                    
-                    target._dropBefore = insertBefore;
-                    target._wouldChange = wouldChange;
-                    
-                    if (wouldChange) {
-                        let indicator = target.querySelector('.insert-indicator');
-                        if (!indicator) {
-                            indicator = document.createElement('div');
-                            indicator.className = 'insert-indicator';
-                            target.appendChild(indicator);
-                        }
-                        indicator.style.top = insertBefore ? '-4px' : 'calc(100% + 4px)';
-                    } else {
-                        const indicator = target.querySelector('.insert-indicator');
-                        if (indicator) indicator.remove();
-                    }
+            // Remove all existing indicators
+            document.querySelectorAll('.insert-indicator').forEach(el => el.remove());
+            
+            // Check if we're in a project pane and dragging a project item
+            const projectPane = e.target.closest('.project-pane');
+            if (!projectPane || item.status !== 'projects') return;
+            
+            const projectId = parseInt(projectPane.dataset.projectId);
+            if (!projectId || item.projectId !== projectId) return;
+            
+            // Get all items in this project
+            const projectItems = Array.from(projectPane.querySelectorAll('.item'))
+                .map(el => {
+                    const rect = el.getBoundingClientRect();
+                    return {
+                        id: parseInt(el.dataset.id),
+                        element: el,
+                        midpoint: rect.top + rect.height / 2,
+                        top: rect.top,
+                        bottom: rect.bottom
+                    };
+                })
+                .filter(itemData => itemData.id !== draggedItem); // Exclude dragged item
+            
+            if (projectItems.length === 0) return;
+            
+            const mouseY = e.clientY;
+            
+            // Find closest item based on distance to midpoint
+            let closest = projectItems[0];
+            let minDistance = Math.abs(mouseY - closest.midpoint);
+            
+            for (let i = 1; i < projectItems.length; i++) {
+                const distance = Math.abs(mouseY - projectItems[i].midpoint);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closest = projectItems[i];
                 }
             }
+            
+            // Determine if mouse is above or below the closest item's midpoint
+            const insertBefore = mouseY < closest.midpoint;
+            
+            // Store drop information on the project pane
+            projectPane._closestItemId = closest.id;
+            projectPane._insertBefore = insertBefore;
+            
+            // Show indicator
+            const indicator = document.createElement('div');
+            indicator.className = 'insert-indicator';
+            indicator.style.top = insertBefore ? '-4px' : 'calc(100% + 4px)';
+            closest.element.appendChild(indicator);
         }
         
         async function handleDrop(e) {
@@ -1601,61 +1554,56 @@ def get_html():
             
             const target = e.currentTarget;
             
-            // Check if dropped on another item
-            if (target.classList.contains('item')) {
-                const targetItemId = parseInt(target.dataset.id);
-                const targetItem = data.items.find(i => i.id === targetItemId);
+            // Check if dropped in a project pane for reordering
+            const projectPane = target.closest('.project-pane');
+            if (projectPane && projectPane._closestItemId && item.status === 'projects') {
+                const projectId = parseInt(projectPane.dataset.projectId);
                 
-                // Only reorder if BOTH items are already in the same project (dragging within same project)
-                if (targetItem && targetItem.projectId && item.projectId === targetItem.projectId && item.status === 'projects') {
-                    // Check if this drop would actually change position
-                    if (!target._wouldChange) {
-                        await loadData();
-                        return;
-                    }
-                    
-                    const projectId = targetItem.projectId;
+                if (item.projectId === projectId) {
+                    // Reordering within same project
                     const projectItems = data.items
                         .filter(i => i.projectId === projectId && i.status === 'projects')
                         .sort((a, b) => (a.position || 0) - (b.position || 0));
                     
                     const oldIndex = projectItems.findIndex(i => i.id === draggedItem);
-                    let targetIndex = projectItems.findIndex(i => i.id === targetItemId);
-                    
-                    // Determine if we should insert before or after based on drop position
-                    const insertBefore = target._dropBefore;
+                    let targetIndex = projectItems.findIndex(i => i.id === projectPane._closestItemId);
                     
                     if (oldIndex !== -1 && targetIndex !== -1) {
-                        // Calculate the actual insertion position
-                        // If dropping in the bottom half, we want to insert after the target
-                        if (!insertBefore) {
+                        // If inserting after, increment target index
+                        if (!projectPane._insertBefore) {
                             targetIndex++;
                         }
                         
-                        // Adjust target index if we're moving an item down (removing it shifts indices)
+                        // Adjust if moving down (removal shifts indices)
                         if (oldIndex < targetIndex) {
                             targetIndex--;
                         }
                         
-                        // Build new order: remove dragged item, then insert at target position
-                        const reordered = projectItems.filter(i => i.id !== draggedItem);
-                        const draggedItemObj = projectItems[oldIndex];
-                        reordered.splice(targetIndex, 0, draggedItemObj);
-                        
-                        // Update all positions sequentially
-                        for (let i = 0; i < reordered.length; i++) {
-                            await fetch('/api/items/' + reordered[i].id, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ position: i })
-                            });
+                        // Only update if position actually changes
+                        if (oldIndex !== targetIndex) {
+                            const reordered = projectItems.filter(i => i.id !== draggedItem);
+                            const draggedItemObj = projectItems[oldIndex];
+                            reordered.splice(targetIndex, 0, draggedItemObj);
+                            
+                            for (let i = 0; i < reordered.length; i++) {
+                                await fetch('/api/items/' + reordered[i].id, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ position: i })
+                                });
+                            }
                         }
                     }
                     await loadData();
                     return;
                 }
+            }
+            
+            // Check if dropped on an item to add to that item's project
+            if (target.classList.contains('item')) {
+                const targetItemId = parseInt(target.dataset.id);
+                const targetItem = data.items.find(i => i.id === targetItemId);
                 
-                // If dropped on item but NOT reordering, treat it as dropping into that item's project
                 if (targetItem && targetItem.projectId) {
                     const projectId = targetItem.projectId;
                     const projectItems = data.items.filter(i => i.projectId === projectId && i.status === 'projects');
