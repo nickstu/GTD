@@ -1530,7 +1530,7 @@ def application(environ, start_response):
             else:
                 users[new_username] = {"password": new_password, "isAdmin": is_admin}
                 save_users(users)
-                response = {"success": True}
+                response = {"success": True, "message": f"User '{new_username}' created successfully"}
             
             status = '200 OK'
             headers = [('Content-type', 'application/json')]
