@@ -617,7 +617,6 @@ def get_html():
             margin-bottom: 8px;
             cursor: move;
             transition: all 0.2s;
-            position: relative;
         }
         
         .item:hover {
@@ -627,46 +626,6 @@ def get_html():
         
         .item.dragging {
             opacity: 0.5;
-        }
-        
-        .drop-target-hover {
-            background: #3a4555 !important;
-            border-color: #0d6efd !important;
-            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.3) !important;
-        }
-        
-        .drop-target-project {
-            background: #2a3545 !important;
-            border: 2px dashed #0d6efd !important;
-        }
-        
-        .insert-indicator {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: #0d6efd;
-            border-radius: 2px;
-            box-shadow: 0 0 8px rgba(13, 110, 253, 0.6);
-            animation: pulse 0.6s ease-in-out infinite;
-            pointer-events: none;
-            z-index: 100;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scaleY(1); }
-            50% { opacity: 0.7; transform: scaleY(1.5); }
-        }
-        
-        .pane-content.drop-zone-active {
-            background: rgba(13, 110, 253, 0.05);
-            border: 2px dashed #0d6efd;
-            border-radius: 8px;
-        }
-        
-        .project-pane.drop-zone-active {
-            background: rgba(13, 110, 253, 0.08) !important;
-            border: 2px solid #0d6efd !important;
         }
         
         .item-title {
@@ -745,7 +704,6 @@ def get_html():
             border-radius: 8px;
             padding: 12px;
             height: fit-content;
-            position: relative;
         }
         
         .project-header {
@@ -1392,8 +1350,6 @@ def get_html():
                 el.addEventListener('dragstart', handleDragStart);
                 el.addEventListener('dragend', handleDragEnd);
                 el.addEventListener('dragover', handleDragOver);
-                el.addEventListener('dragenter', handleDragEnter);
-                el.addEventListener('dragleave', handleDragLeave);
                 el.addEventListener('drop', handleDrop);
                 el.addEventListener('click', function(e) {
                     if (!e.target.classList.contains('checkbox')) {
@@ -1405,15 +1361,11 @@ def get_html():
             // Attach drop listeners
             document.querySelectorAll('[data-status]').forEach(el => {
                 el.addEventListener('dragover', handleDragOver);
-                el.addEventListener('dragenter', handleDragEnter);
-                el.addEventListener('dragleave', handleDragLeave);
                 el.addEventListener('drop', handleDrop);
             });
             
             document.querySelectorAll('[data-project-id]').forEach(el => {
                 el.addEventListener('dragover', handleDragOver);
-                el.addEventListener('dragenter', handleDragEnter);
-                el.addEventListener('dragleave', handleDragLeave);
                 el.addEventListener('drop', handleDrop);
             });
         }
@@ -1425,175 +1377,16 @@ def get_html():
         
         function handleDragEnd(e) {
             e.target.classList.remove('dragging');
-            // Clean up all visual feedback
-            document.querySelectorAll('.drop-target-hover, .drop-target-project, .drop-zone-active').forEach(el => {
-                el.classList.remove('drop-target-hover', 'drop-target-project', 'drop-zone-active');
-                el._dragDepth = 0; // Reset drag depth counters
-            });
-            document.querySelectorAll('.insert-indicator').forEach(el => el.remove());
             draggedItem = null;
-        }
-        
-        function handleDragEnter(e) {
-            if (!draggedItem) return;
-            e.preventDefault();
-            
-            const target = e.currentTarget;
-            const item = data.items.find(i => i.id === draggedItem);
-            if (!item) return;
-            
-            // Track drag depth to prevent flickering from child elements
-            if (!target._dragDepth) target._dragDepth = 0;
-            target._dragDepth++;
-            
-            // Only apply visual feedback on first enter
-            if (target._dragDepth !== 1) return;
-            
-            // Highlight drop zones
-            if (target.classList.contains('item')) {
-                const targetItemId = parseInt(target.dataset.id);
-                const targetItem = data.items.find(i => i.id === targetItemId);
-                
-                // Check if this would be a reorder operation
-                if (targetItem && targetItem.projectId && item.projectId === targetItem.projectId && item.status === 'projects') {
-                    // Calculate which half of the item we're over
-                    const rect = target.getBoundingClientRect();
-                    const mouseY = e.clientY;
-                    const itemMiddle = rect.top + rect.height / 2;
-                    const insertBefore = mouseY < itemMiddle;
-                    
-                    // Get indices to check if this would actually change position
-                    const projectId = targetItem.projectId;
-                    const projectItems = data.items
-                        .filter(i => i.projectId === projectId && i.status === 'projects')
-                        .sort((a, b) => (a.position || 0) - (b.position || 0));
-                    
-                    const draggedIndex = projectItems.findIndex(i => i.id === draggedItem);
-                    const targetIndex = projectItems.findIndex(i => i.id === targetItemId);
-                    
-                    // Calculate the gap position we'd be dropping into
-                    // Gaps are numbered: 0 = before first item, 1 = after first item, etc.
-                    const targetGap = insertBefore ? targetIndex : targetIndex + 1;
-                    const currentGap = draggedIndex; // Item currently occupies the gap right after its position
-                    
-                    // Only show indicator if this would actually change position
-                    // Adjacent gaps (currentGap and currentGap+1) both mean no change
-                    const wouldChange = targetGap !== currentGap && targetGap !== currentGap + 1;
-                    
-                    // Store the drop position on the element
-                    target._dropBefore = insertBefore;
-                    target._wouldChange = wouldChange;
-                    
-                    if (wouldChange) {
-                        // Show insertion indicator for reordering
-                        const existingIndicator = target.querySelector('.insert-indicator');
-                        if (!existingIndicator) {
-                            const indicator = document.createElement('div');
-                            indicator.className = 'insert-indicator';
-                            indicator.style.top = insertBefore ? '-4px' : 'calc(100% + 4px)';
-                            target.appendChild(indicator);
-                        } else {
-                            // Update existing indicator position
-                            existingIndicator.style.top = insertBefore ? '-4px' : 'calc(100% + 4px)';
-                        }
-                    } else {
-                        // Remove indicator if no change would occur
-                        const existingIndicator = target.querySelector('.insert-indicator');
-                        if (existingIndicator) existingIndicator.remove();
-                    }
-                } else if (targetItem && targetItem.projectId) {
-                    // Show it will be added to this project
-                    target.classList.add('drop-target-hover');
-                }
-            } else if (target.dataset.status || target.dataset.projectId) {
-                // Highlight panes
-                if (target.classList.contains('pane-content')) {
-                    target.classList.add('drop-zone-active');
-                } else if (target.classList.contains('project-pane')) {
-                    target.classList.add('drop-zone-active');
-                }
-            }
-        }
-        
-        function handleDragLeave(e) {
-            if (!draggedItem) return;
-            const target = e.currentTarget;
-            
-            // Track drag depth to prevent flickering from child elements
-            if (!target._dragDepth) target._dragDepth = 0;
-            target._dragDepth--;
-            
-            // Only remove visual feedback when fully leaving the element
-            if (target._dragDepth > 0) return;
-            
-            // Remove highlights
-            target.classList.remove('drop-target-hover', 'drop-target-project', 'drop-zone-active');
-            
-            // Remove insertion indicators from this element
-            const indicators = target.querySelectorAll('.insert-indicator');
-            indicators.forEach(ind => ind.remove());
         }
         
         function handleDragOver(e) {
             e.preventDefault();
-            
-            // Update indicator position for items during reorder
-            if (!draggedItem) return;
-            const target = e.currentTarget;
-            
-            if (target.classList.contains('item')) {
-                const item = data.items.find(i => i.id === draggedItem);
-                const targetItemId = parseInt(target.dataset.id);
-                const targetItem = data.items.find(i => i.id === targetItemId);
-                
-                if (item && targetItem && targetItem.projectId && item.projectId === targetItem.projectId && item.status === 'projects') {
-                    const rect = target.getBoundingClientRect();
-                    const mouseY = e.clientY;
-                    const itemMiddle = rect.top + rect.height / 2;
-                    const insertBefore = mouseY < itemMiddle;
-                    
-                    // Get indices to check if this would actually change position
-                    const projectId = targetItem.projectId;
-                    const projectItems = data.items
-                        .filter(i => i.projectId === projectId && i.status === 'projects')
-                        .sort((a, b) => (a.position || 0) - (b.position || 0));
-                    
-                    const draggedIndex = projectItems.findIndex(i => i.id === draggedItem);
-                    const targetIndex = projectItems.findIndex(i => i.id === targetItemId);
-                    
-                    const targetGap = insertBefore ? targetIndex : targetIndex + 1;
-                    const currentGap = draggedIndex;
-                    const wouldChange = targetGap !== currentGap && targetGap !== currentGap + 1;
-                    
-                    target._dropBefore = insertBefore;
-                    target._wouldChange = wouldChange;
-                    
-                    if (wouldChange) {
-                        let indicator = target.querySelector('.insert-indicator');
-                        if (!indicator) {
-                            indicator = document.createElement('div');
-                            indicator.className = 'insert-indicator';
-                            target.appendChild(indicator);
-                        }
-                        indicator.style.top = insertBefore ? '-4px' : 'calc(100% + 4px)';
-                    } else {
-                        const indicator = target.querySelector('.insert-indicator');
-                        if (indicator) indicator.remove();
-                    }
-                }
-            }
         }
         
         async function handleDrop(e) {
             e.preventDefault();
             e.stopPropagation();  // Prevent bubbling to project pane
-            
-            // Clean up visual feedback
-            document.querySelectorAll('.drop-target-hover, .drop-target-project, .drop-zone-active').forEach(el => {
-                el.classList.remove('drop-target-hover', 'drop-target-project', 'drop-zone-active');
-            });
-            document.querySelectorAll('.insert-indicator').forEach(el => el.remove());
-            
             if (!draggedItem) return;
             
             const item = data.items.find(i => i.id === draggedItem);
@@ -1606,41 +1399,21 @@ def get_html():
                 const targetItemId = parseInt(target.dataset.id);
                 const targetItem = data.items.find(i => i.id === targetItemId);
                 
-                // Only reorder if BOTH items are already in the same project (dragging within same project)
-                if (targetItem && targetItem.projectId && item.projectId === targetItem.projectId && item.status === 'projects') {
-                    // Check if this drop would actually change position
-                    if (!target._wouldChange) {
-                        await loadData();
-                        return;
-                    }
-                    
+                // If both items are in the same project, reorder
+                if (targetItem && targetItem.projectId && item.projectId === targetItem.projectId) {
                     const projectId = targetItem.projectId;
                     const projectItems = data.items
                         .filter(i => i.projectId === projectId && i.status === 'projects')
                         .sort((a, b) => (a.position || 0) - (b.position || 0));
                     
                     const oldIndex = projectItems.findIndex(i => i.id === draggedItem);
-                    let targetIndex = projectItems.findIndex(i => i.id === targetItemId);
+                    const newIndex = projectItems.findIndex(i => i.id === targetItemId);
                     
-                    // Determine if we should insert before or after based on drop position
-                    const insertBefore = target._dropBefore;
-                    
-                    if (oldIndex !== -1 && targetIndex !== -1) {
-                        // Calculate the actual insertion position
-                        // If dropping in the bottom half, we want to insert after the target
-                        if (!insertBefore) {
-                            targetIndex++;
-                        }
-                        
-                        // Adjust target index if we're moving an item down (removing it shifts indices)
-                        if (oldIndex < targetIndex) {
-                            targetIndex--;
-                        }
-                        
+                    if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
                         // Build new order: remove dragged item, then insert at target position
                         const reordered = projectItems.filter(i => i.id !== draggedItem);
                         const draggedItemObj = projectItems[oldIndex];
-                        reordered.splice(targetIndex, 0, draggedItemObj);
+                        reordered.splice(newIndex, 0, draggedItemObj);
                         
                         // Update all positions sequentially
                         for (let i = 0; i < reordered.length; i++) {
@@ -1651,21 +1424,6 @@ def get_html():
                             });
                         }
                     }
-                    await loadData();
-                    return;
-                }
-                
-                // If dropped on item but NOT reordering, treat it as dropping into that item's project
-                if (targetItem && targetItem.projectId) {
-                    const projectId = targetItem.projectId;
-                    const projectItems = data.items.filter(i => i.projectId === projectId && i.status === 'projects');
-                    const maxPos = projectItems.length > 0 ? Math.max(...projectItems.map(i => i.position || 0)) : -1;
-                    
-                    await fetch('/api/items/' + draggedItem, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status: 'projects', projectId, position: maxPos + 1 })
-                    });
                     await loadData();
                     return;
                 }
