@@ -1092,7 +1092,48 @@
         async function loadData() {
             const response = await fetch('/api/data');
             data = await response.json();
+            await cleanupInvalidItems();
             render();
+        }
+        
+        async function cleanupInvalidItems() {
+            const validStatuses = ['inbox', 'someday', 'projects'];
+            const validProjectIds = new Set(data.projects.map(p => p.id));
+            let modified = false;
+            
+            data.items.forEach(item => {
+                // Check if status is invalid
+                if (!validStatuses.includes(item.status)) {
+                    console.log(`Invalid status "${item.status}" for item ${item.id}, sending to inbox`);
+                    item.status = 'inbox';
+                    item.projectId = null;
+                    modified = true;
+                }
+                // Check if item has projectId but status is not 'projects'
+                else if (item.projectId && item.status !== 'projects') {
+                    console.log(`Item ${item.id} has projectId but status is "${item.status}", sending to inbox`);
+                    item.status = 'inbox';
+                    item.projectId = null;
+                    modified = true;
+                }
+                // Check if status is 'projects' but has invalid/missing projectId
+                else if (item.status === 'projects' && (!item.projectId || !validProjectIds.has(item.projectId))) {
+                    console.log(`Item ${item.id} has invalid projectId ${item.projectId}, sending to inbox`);
+                    item.status = 'inbox';
+                    item.projectId = null;
+                    modified = true;
+                }
+            });
+            
+            // Save cleaned data back to server if modifications were made
+            if (modified) {
+                console.log('Invalid items found, saving cleaned data...');
+                await fetch('/api/data', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+            }
         }
         
         function getInboxItems() {
