@@ -1746,6 +1746,7 @@
                 
                 // Left click to select
                 el.addEventListener('click', function(e) {
+                    console.log('[click] project:', projectId, 'isDragAllowed:', isDragAllowed);
                     if (!isDragAllowed) {
                         selectProject(projectId);
                     }
@@ -1762,7 +1763,16 @@
                 el.addEventListener('mousedown', function(e) {
                     if (e.button !== 0) return; // Only left mouse button
                     console.log('[mousedown] project:', projectId, 'draggable before:', el.getAttribute('draggable'));
+                    
+                    // Clear any leftover draggable state from previous attempt
+                    el.removeAttribute('draggable');
                     isDragAllowed = false;
+                    
+                    // Cancel any existing timer
+                    if (dragTimer) {
+                        clearTimeout(dragTimer);
+                        console.log('[mousedown] canceled existing timer');
+                    }
                     
                     // Set draggable after 150ms hold
                     dragTimer = setTimeout(() => {
