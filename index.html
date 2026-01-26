@@ -1738,10 +1738,13 @@
             
             document.getElementById('projects-list').innerHTML = projectsListHtml;
             
+            // Global drag state (outside forEach so it's shared across all elements)
+            let currentDragElement = null;
+            let currentDragTimer = null;
+            
             // Attach project interaction listeners
             document.querySelectorAll('.project-list-item').forEach(el => {
                 const projectId = parseInt(el.dataset.projectId);
-                let dragTimer = null;
                 let isDragAllowed = false;
                 
                 // Left click to select
@@ -1764,37 +1767,30 @@
                     if (e.button !== 0) return; // Only left mouse button
                     console.log('[mousedown] project:', projectId, 'draggable before:', el.getAttribute('draggable'));
                     
-                    // Clear any leftover draggable state from previous attempt
-                    el.removeAttribute('draggable');
-                    isDragAllowed = false;
-                    
-                    // Cancel any existing timer
-                    if (dragTimer) {
-                        clearTimeout(dragTimer);
+                    // Clear any previous drag state
+                    if (currentDragElement && currentDragElement !== el) {
+                        currentDragElement.removeAttribute('draggable');
+                        currentDragElement.style.cursor = 'pointer';
+                    }
+                    if (currentDragTimer) {
+                        clearTimeout(currentDragTimer);
                         console.log('[mousedown] canceled existing timer');
                     }
                     
+                    // Clear this element's draggable state
+                    el.removeAttribute('draggable');
+                    isDragAllowed = false;
+                    currentDragElement = el;
+                    
                     // Set draggable after 150ms hold
-                    dragTimer = setTimeout(() => {
+                    currentDragTimer = setTimeout(() => {
                         console.log('[timer fired] setting draggable=true for project:', projectId);
                         el.setAttribute('draggable', 'true');
                     }, 150);
                 });
                 
-                // Mouse up - cancel timer and clean up
-                el.addEventListener('mouseup', function(e) {
-                    console.log('[mouseup] project:', projectId, 'timer exists:', !!dragTimer, 'isDragAllowed:', isDragAllowed, 'draggable:', el.getAttribute('draggable'));
-                    if (dragTimer) {
-                        clearTimeout(dragTimer);
-                        dragTimer = null;
-                        console.log('[mouseup] timer canceled');
-                    }
-                    if (!isDragAllowed) {
-                        el.removeAttribute('draggable');
-                        el.style.cursor = 'pointer';
-                        console.log('[mouseup] removed draggable');
-                    }
-                });
+                // Note: mouseup is now handled globally below
+                // (removed per-element mouseup listener)
                 
                 // Drag handlers
                 el.addEventListener('dragstart', function(e) {
@@ -1809,13 +1805,14 @@
                     console.log('[dragend] project:', projectId);
                     handleProjectDragEnd(e);
                     isDragAllowed = false;
-                    if (dragTimer) {
-                        clearTimeout(dragTimer);
-                        dragTimer = null;
+                    if (currentDragTimer) {
+                        clearTimeout(currentDragTimer);
+                        currentDragTimer = null;
                         console.log('[dragend] timer canceled');
                     }
                     el.removeAttribute('draggable');
                     el.style.cursor = 'pointer';
+                    currentDragElement = null;
                     console.log('[dragend] removed draggable');
                 });
                 
@@ -1823,6 +1820,23 @@
                 el.addEventListener('dragenter', handleProjectDragEnter);
                 el.addEventListener('dragleave', handleProjectDragLeave);
                 el.addEventListener('drop', handleProjectDrop);
+            });
+            
+            // Global mouseup handler to clean up regardless of where mouse is released
+            document.addEventListener('mouseup', function cleanupDrag(e) {
+                console.log('[global mouseup] currentDragElement:', currentDragElement);
+                if (currentDragTimer) {
+                    clearTimeout(currentDragTimer);
+                    currentDragTimer = null;
+                    console.log('[global mouseup] timer canceled');
+                }
+                if (currentDragElement) {
+                    const wasDraggable = currentDragElement.getAttribute('draggable');
+                    currentDragElement.removeAttribute('draggable');
+                    currentDragElement.style.cursor = 'pointer';
+                    console.log('[global mouseup] cleaned up element, was draggable:', wasDraggable);
+                    currentDragElement = null;
+                }
             });
             
             // Update project selector in edit modal
