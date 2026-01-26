@@ -1939,16 +1939,32 @@
             const draggedProjectObj = projects[oldIndex];
             reordered.splice(targetIndex, 0, draggedProjectObj);
             
-            // Update positions
-            for (let i = 0; i < reordered.length; i++) {
-                await fetch('/api/projects/' + reordered[i].id, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ position: i })
-                });
-            }
+            // Update local data immediately (optimistic update)
+            reordered.forEach((project, index) => {
+                const dataProject = data.projects.find(p => p.id === project.id);
+                if (dataProject) {
+                    dataProject.position = index;
+                }
+            });
             
-            await loadData();
+            // Refresh the project list immediately
+            render();
+            
+            // Send update to server in background
+            const updates = reordered.map((project, index) => ({
+                id: project.id,
+                position: index
+            }));
+            
+            fetch('/api/projects/batch', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updates)
+            }).catch(err => {
+                console.error('Failed to save project positions:', err);
+                // On error, reload from server
+                loadData();
+            });
         }
         
         // Item drag and drop handlers

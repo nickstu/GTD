@@ -491,6 +491,33 @@ def application(environ, start_response):
             start_response(status, headers)
             return [json.dumps({"updated": updated_count}).encode('utf-8')]
         
+        # Batch update endpoint for multiple projects
+        if path == '/api/projects/batch':
+            if not isinstance(updates, list):
+                status = '400 Bad Request'
+                headers = [('Content-type', 'application/json')]
+                start_response(status, headers)
+                return [json.dumps({"error": "Expected array of updates"}).encode('utf-8')]
+            
+            updated_count = 0
+            for update in updates:
+                project_id = update.get('id')
+                if not project_id:
+                    continue
+                for i, project in enumerate(data['projects']):
+                    if project['id'] == project_id:
+                        # Remove 'id' from updates to avoid overwriting
+                        project_updates = {k: v for k, v in update.items() if k != 'id'}
+                        data['projects'][i].update(project_updates)
+                        updated_count += 1
+                        break
+            
+            save_data(username, data)
+            status = '200 OK'
+            headers = [('Content-type', 'application/json')]
+            start_response(status, headers)
+            return [json.dumps({"updated": updated_count}).encode('utf-8')]
+        
         path_parts = path.split('/')
         if len(path_parts) < 4:
             status = '400 Bad Request'

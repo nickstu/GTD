@@ -389,6 +389,29 @@ class GTDHandler(BaseHTTPRequestHandler):
             self.send_json({"updated": updated_count})
             return
         
+        # Batch update endpoint for multiple projects
+        if path == '/api/projects/batch':
+            if not isinstance(updates, list):
+                self.send_error(400, "Expected array of updates")
+                return
+            
+            updated_count = 0
+            for update in updates:
+                project_id = update.get('id')
+                if not project_id:
+                    continue
+                for i, project in enumerate(data['projects']):
+                    if project['id'] == project_id:
+                        # Remove 'id' from updates to avoid overwriting
+                        project_updates = {k: v for k, v in update.items() if k != 'id'}
+                        data['projects'][i].update(project_updates)
+                        updated_count += 1
+                        break
+            
+            save_data(username, data)
+            self.send_json({"updated": updated_count})
+            return
+        
         if len(parts) < 4:
             self.send_error(400)
             return
