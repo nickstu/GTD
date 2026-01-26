@@ -1698,6 +1698,7 @@
         }
         
         function render() {
+            console.log('[render] called - will recreate all project elements');
             // Inbox
             document.getElementById('inbox-content').innerHTML = 
                 getInboxItems().map(i => renderItem(i)).join('');
@@ -1861,6 +1862,7 @@
         let selectedProjectId = null;
         
         function selectProject(projectId) {
+            console.log('[selectProject] called for project:', projectId);
             selectedProjectId = projectId;
             
             // Update active state in sidebar
