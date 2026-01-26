@@ -222,46 +222,139 @@
         
         .grid-row { 
             display: grid; 
-            grid-template-columns: repeat(5, 1fr); 
+            grid-template-columns: repeat(4, 1fr); 
             grid-template-rows: 100%;
             gap: 16px; 
             margin-bottom: 16px; 
             flex: 0 0 50%; 
             min-height: 0; 
         }
-        .projects-row { 
-            display: flex; 
-            gap: 16px; 
-            overflow-x: scroll; 
-            padding: 8px 8px 10px 8px;
+        
+        .bottom-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
             flex: 1;
             min-height: 0;
         }
         
-        .projects-row::-webkit-scrollbar {
-            height: 8px;
+        .projects-wrapper {
+            grid-column: 1 / 3;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .projects-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
         }
         
-        .projects-row::-webkit-scrollbar-track {
+        .projects-sidebar {
+            background: #1a1d24;
+            overflow-y: scroll;
+            border-right: 1px solid #3a3f4b;
+        }
+        
+        .projects-sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .projects-sidebar::-webkit-scrollbar-track {
             background: #1a1d24;
             border-radius: 4px;
         }
         
-        .projects-row::-webkit-scrollbar-thumb {
+        .projects-sidebar::-webkit-scrollbar-thumb {
             background: #3a3f4b;
             border-radius: 4px;
         }
         
-        .projects-row::-webkit-scrollbar-thumb:hover {
+        .projects-sidebar::-webkit-scrollbar-thumb:hover {
             background: #4a4f5b;
         }
         
-        .projects-wrapper {
-            flex: 1;
+        .projects-detail {
+            overflow-y: scroll;
+            padding: 8px;
+        }
+        
+        .projects-detail::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .projects-detail::-webkit-scrollbar-track {
+            background: #1a1d24;
+            border-radius: 4px;
+        }
+        
+        .projects-detail::-webkit-scrollbar-thumb {
+            background: #3a3f4b;
+            border-radius: 4px;
+        }
+        
+        .projects-detail::-webkit-scrollbar-thumb:hover {
+            background: #4a4f5b;
+        }
+        
+        .project-list-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #2a2f3a;
             display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-height: 0;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        
+        .project-list-item:hover {
+            background: #242831;
+        }
+        
+        .project-list-item.active {
+            background: #2a2f3a;
+            border-left: 3px solid #0d6efd;
+        }
+        
+        .project-list-item .drag-handle {
+            font-size: 14px;
+        }
+        
+        .project-list-item-name {
+            flex: 1;
+            font-size: 14px;
+        }
+        
+        .project-list-insert-indicator {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #0d6efd;
+            border-radius: 2px;
+            box-shadow: 0 0 8px rgba(13, 110, 253, 0.6);
+            animation: pulse 0.6s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .project-list-insert-indicator.before {
+            top: 0;
+        }
+        
+        .project-list-insert-indicator.after {
+            bottom: 0;
+        }
+        
+        .project-list-item {
+            position: relative;
+        }
+        
+        .project-list-item.dragging {
+            opacity: 0.4;
         }
         
         .pane {
@@ -860,25 +953,36 @@
                 flex: none;
             }
             
-            /* Reorder panes on mobile: inbox, calendar, next actions, projects, someday, user */
+            /* Reorder panes on mobile: inbox, calendar, next actions, projects, someday, time, user */
             .grid-row .pane:nth-child(1) { order: 1; } /* Inbox */
             .grid-row .pane:nth-child(2) { order: 2; } /* Calendar */
             .grid-row .pane:nth-child(3) { order: 3; } /* Next Actions */
-            .grid-row .pane:nth-child(4) { order: 5; } /* Someday */
-            .grid-row .pane:nth-child(5) { order: 6; } /* Account */
+            .grid-row .pane:nth-child(4) { order: 7; } /* Account */
             
-            .projects-wrapper {
-                flex: none;
-                order: 4; /* Projects after Next Actions */
-            }
-            
-            /* Stack projects vertically */
-            .projects-row {
+            .bottom-row {
                 display: flex;
                 flex-direction: column;
                 gap: 16px;
-                overflow-x: visible;
-                padding-bottom: 0;
+                flex: none;
+            }
+            
+            .projects-wrapper {
+                order: 4; /* Projects after Next Actions */
+            }
+            
+            .bottom-row .pane:nth-child(2) { order: 5; } /* Someday */
+            .bottom-row .pane:nth-child(3) { order: 6; } /* Time */
+            
+            /* Stack projects vertically */
+            .projects-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+            
+            .projects-sidebar {
+                border-right: none;
+                border-bottom: 1px solid #3a3f4b;
+                max-height: 200px;
             }
             
             .pane {
@@ -969,7 +1073,7 @@
     </div>
     
     <div id="appContent" class="container">
-        <!-- Top Row: Inbox, Calendar, Next Actions, Someday, Account -->
+        <!-- Top Row: Inbox, Calendar, Next Actions, Account -->
         <div class="grid-row">
             <div class="pane" data-status="inbox">
                 <div class="pane-header">📥 Inbox</div>
@@ -996,11 +1100,6 @@
             <div class="pane">
                 <div class="pane-header">⚡ Next Actions</div>
                 <div class="pane-content" id="next-content"></div>
-            </div>
-            
-            <div class="pane" data-status="someday">
-                <div class="pane-header">💭 Someday/Maybe</div>
-                <div class="pane-content" id="someday-content"></div>
             </div>
             
             <div class="pane">
@@ -1030,14 +1129,31 @@
             </div>
         </div>
         
-        <!-- Bottom Row: Projects -->
-        <div class="projects-wrapper">
-            <div class="pane" style="height: 100%;">
-                <div class="pane-header">
-                    🗂️ Projects
-                    <button class="btn-new-project" onclick="newProject()">+ New Project</button>
+        <!-- Bottom Row: Projects, Someday, Time -->
+        <div class="bottom-row">
+            <div class="projects-wrapper">
+                <div class="pane" style="height: 100%;">
+                    <div class="pane-header">
+                        🗂️ Projects
+                        <button class="btn-new-project" onclick="newProject()">+ New Project</button>
+                    </div>
+                    <div class="projects-container">
+                        <div class="projects-sidebar" id="projects-list"></div>
+                        <div class="projects-detail" id="projects-detail">
+                            <div class="empty-state">Select a project to view its items</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="projects-row" id="projects-content"></div>
+            </div>
+            
+            <div class="pane" data-status="someday">
+                <div class="pane-header">💭 Someday</div>
+                <div class="pane-content" id="someday-content"></div>
+            </div>
+            
+            <div class="pane">
+                <div class="pane-header">⏰ Time</div>
+                <div class="pane-content" id="time-content"></div>
             </div>
         </div>
     </div>
@@ -1110,7 +1226,6 @@
     
     <!-- Context Menu -->
     <div id="contextMenu">
-        <div class="context-menu-item" data-action="edit">📝 Edit</div>
         <div class="context-menu-item" data-action="move-inbox">📥 Move to Inbox</div>
         <div class="context-menu-item" data-action="move-someday">💭 Move to Someday</div>
         <div class="context-menu-item" data-action="move-project">📁 Move to Project</div>
@@ -1597,42 +1712,33 @@
                 getSomedayItems().map(i => renderItem(i)).join('');
             
             // Projects
-            let projectsHtml = '';
+            let projectsListHtml = '';
             const sortedProjects = data.projects.sort((a, b) => (a.position || 0) - (b.position || 0));
-            sortedProjects.forEach(project => {
-                const projectItems = data.items
-                    .filter(i => i.projectId === project.id && i.status === 'projects')
-                    .sort((a, b) => (a.position || 0) - (b.position || 0));
-                
-                projectsHtml += '<div class="project-pane" data-project-id="' + project.id + '">';
-                projectsHtml += '<div class="project-header">';
-                projectsHtml += '<span class="drag-handle" draggable="true">⋮⋮</span>';
-                projectsHtml += '<span onclick="editProject(' + project.id + ')" style="flex: 1; cursor: pointer;">' + project.name + '</span>';
-                projectsHtml += '</div>';
-                projectsHtml += '<div class="project-items">';
-                projectsHtml += projectItems.map(i => renderItem(i)).join('');
-                if (projectItems.length === 0) {
-                    projectsHtml += '<div class="empty-state" style="padding: 20px; font-size: 10px;">Empty Project</div>';
-                }
-                projectsHtml += '</div>';
-                projectsHtml += '</div>';
-            });
             
-            if (data.projects.length === 0) {
-                projectsHtml = '<div class="empty-state">No projects. Click "+ New Project" to create one.</div>';
+            if (sortedProjects.length === 0) {
+                projectsListHtml = '<div class="empty-state">No projects. Click "+ New Project" to create one.</div>';
+            } else {
+                sortedProjects.forEach(project => {
+                    const itemCount = data.items.filter(i => i.projectId === project.id && i.status === 'projects' && !i.done).length;
+                    projectsListHtml += '<div class="project-list-item" data-project-id="' + project.id + '" onclick="selectProject(' + project.id + ')">';
+                    projectsListHtml += '<span class="drag-handle" draggable="true">⋮⋮</span>';
+                    projectsListHtml += '<span class="project-list-item-name" oncontextmenu="event.preventDefault(); event.stopPropagation(); editProject(' + project.id + ')">' + project.name + '</span>';
+                    projectsListHtml += '<span style="font-size: 11px; color: #6c757d;">' + itemCount + '</span>';
+                    projectsListHtml += '</div>';
+                });
             }
             
-            document.getElementById('projects-content').innerHTML = projectsHtml;
+            document.getElementById('projects-list').innerHTML = projectsListHtml;
             
             // Attach project drag listeners
-            document.querySelectorAll('.drag-handle').forEach(el => {
-                const projectPane = el.closest('.project-pane');
+            document.querySelectorAll('.projects-sidebar .drag-handle').forEach(el => {
+                const projectItem = el.closest('.project-list-item');
                 el.addEventListener('dragstart', handleProjectDragStart);
                 el.addEventListener('dragend', handleProjectDragEnd);
-                projectPane.addEventListener('dragover', handleProjectDragOver);
-                projectPane.addEventListener('dragenter', handleProjectDragEnter);
-                projectPane.addEventListener('dragleave', handleProjectDragLeave);
-                projectPane.addEventListener('drop', handleProjectDrop);
+                projectItem.addEventListener('dragover', handleProjectDragOver);
+                projectItem.addEventListener('dragenter', handleProjectDragEnter);
+                projectItem.addEventListener('dragleave', handleProjectDragLeave);
+                projectItem.addEventListener('drop', handleProjectDrop);
             });
             
             // Update project selector in edit modal
@@ -1653,6 +1759,10 @@
                         e.preventDefault();
                         showContextMenu(e, parseInt(el.dataset.id));
                     }
+                });
+                el.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    openItemModal(parseInt(el.dataset.id));
                 });
             });
             
@@ -1675,6 +1785,60 @@
             updateStats();
         }
         
+        let selectedProjectId = null;
+        
+        function selectProject(projectId) {
+            selectedProjectId = projectId;
+            
+            // Update active state in sidebar
+            document.querySelectorAll('.project-list-item').forEach(el => {
+                el.classList.toggle('active', parseInt(el.dataset.projectId) === projectId);
+            });
+            
+            // Render project items in detail panel
+            const project = data.projects.find(p => p.id === projectId);
+            const projectItems = data.items
+                .filter(i => i.projectId === projectId && i.status === 'projects')
+                .sort((a, b) => (a.position || 0) - (b.position || 0));
+            
+            let detailHtml = '';
+            if (projectItems.length === 0) {
+                detailHtml = '<div class="empty-state">No items in this project</div>';
+            } else {
+                detailHtml = projectItems.map(i => renderItem(i)).join('');
+            }
+            
+            document.getElementById('projects-detail').innerHTML = detailHtml;
+            document.getElementById('projects-detail').dataset.projectId = projectId;
+            
+            // Attach drag listeners to items
+            document.querySelectorAll('#projects-detail .item').forEach(el => {
+                el.addEventListener('dragstart', handleDragStart);
+                el.addEventListener('dragend', handleDragEnd);
+                el.addEventListener('dragover', handleDragOver);
+                el.addEventListener('dragenter', handleDragEnter);
+                el.addEventListener('dragleave', handleDragLeave);
+                el.addEventListener('drop', handleDrop);
+                el.addEventListener('click', function(e) {
+                    if (!e.target.classList.contains('checkbox')) {
+                        e.preventDefault();
+                        showContextMenu(e, parseInt(el.dataset.id));
+                    }
+                });
+                el.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    openItemModal(parseInt(el.dataset.id));
+                });
+            });
+            
+            // Make detail panel droppable
+            const detailPanel = document.getElementById('projects-detail');
+            detailPanel.addEventListener('dragover', handleDragOver);
+            detailPanel.addEventListener('dragenter', handleDragEnter);
+            detailPanel.addEventListener('dragleave', handleDragLeave);
+            detailPanel.addEventListener('drop', handleDrop);
+        }
+        
         function updateStats() {
             const totalItems = data.items.length;
             const doneItems = data.items.filter(i => i.done).length;
@@ -1689,20 +1853,20 @@
         
         // Project drag and drop handlers
         function handleProjectDragStart(e) {
-            const projectPane = e.target.closest('.project-pane');
-            if (!projectPane) return;
+            const projectItem = e.target.closest('.project-list-item');
+            if (!projectItem) return;
             
-            draggedProject = parseInt(projectPane.dataset.projectId);
-            projectPane.classList.add('dragging');
+            draggedProject = parseInt(projectItem.dataset.projectId);
+            projectItem.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
         }
         
         function handleProjectDragEnd(e) {
-            const projectPane = e.target.closest('.project-pane');
-            if (projectPane) {
-                projectPane.classList.remove('dragging');
+            const projectItem = e.target.closest('.project-list-item');
+            if (projectItem) {
+                projectItem.classList.remove('dragging');
             }
-            document.querySelectorAll('.project-pane-insert-indicator').forEach(el => el.remove());
+            document.querySelectorAll('.project-pane-insert-indicator, .project-list-insert-indicator').forEach(el => el.remove());
             draggedProject = null;
         }
         
@@ -1719,35 +1883,35 @@
             e.preventDefault();
             if (!draggedProject) return;
             
-            const targetPane = e.currentTarget;
-            const targetProjectId = parseInt(targetPane.dataset.projectId);
+            const targetItem = e.currentTarget;
+            const targetProjectId = parseInt(targetItem.dataset.projectId);
             
             if (targetProjectId === draggedProject) return;
             
             // Remove all existing indicators
-            document.querySelectorAll('.project-pane-insert-indicator').forEach(el => el.remove());
+            document.querySelectorAll('.project-pane-insert-indicator, .project-list-insert-indicator').forEach(el => el.remove());
             
-            // Determine if we're on the left or right half of the target pane
-            const rect = targetPane.getBoundingClientRect();
-            const mouseX = e.clientX;
-            const midpoint = rect.left + rect.width / 2;
-            const insertBefore = mouseX < midpoint;
+            // Determine if we're on the top or bottom half of the target item
+            const rect = targetItem.getBoundingClientRect();
+            const mouseY = e.clientY;
+            const midpoint = rect.top + rect.height / 2;
+            const insertBefore = mouseY < midpoint;
             
             // Store drop information
-            targetPane._closestProjectId = targetProjectId;
-            targetPane._insertBefore = insertBefore;
+            targetItem._closestProjectId = targetProjectId;
+            targetItem._insertBefore = insertBefore;
             
-            // Show indicator on the current target pane
+            // Show indicator on the current target item
             const indicator = document.createElement('div');
-            indicator.className = 'project-pane-insert-indicator ' + (insertBefore ? 'before' : 'after');
-            targetPane.appendChild(indicator);
+            indicator.className = 'project-list-insert-indicator ' + (insertBefore ? 'before' : 'after');
+            targetItem.appendChild(indicator);
         }
         
         async function handleProjectDrop(e) {
             e.preventDefault();
             e.stopPropagation();
             
-            document.querySelectorAll('.project-pane-insert-indicator').forEach(el => el.remove());
+            document.querySelectorAll('.project-pane-insert-indicator, .project-list-insert-indicator').forEach(el => el.remove());
             
             if (!draggedProject) return;
             
@@ -1856,15 +2020,15 @@
             // Remove all existing indicators
             document.querySelectorAll('.insert-indicator').forEach(el => el.remove());
             
-            // Check if we're in a project pane and dragging a project item
-            const projectPane = e.target.closest('.project-pane');
-            if (!projectPane || item.status !== 'projects') return;
+            // Check if we're in the project detail pane and dragging a project item
+            const projectDetail = e.target.closest('#projects-detail');
+            if (!projectDetail || item.status !== 'projects') return;
             
-            const projectId = parseInt(projectPane.dataset.projectId);
+            const projectId = parseInt(projectDetail.dataset.projectId);
             if (!projectId || item.projectId !== projectId) return;
             
             // Get all items in this project
-            const projectItems = Array.from(projectPane.querySelectorAll('.item'))
+            const projectItems = Array.from(projectDetail.querySelectorAll('.item'))
                 .map(el => {
                     const rect = el.getBoundingClientRect();
                     return {
@@ -1896,9 +2060,9 @@
             // Determine if mouse is above or below the closest item's midpoint
             const insertBefore = mouseY < closest.midpoint;
             
-            // Store drop information on the project pane
-            projectPane._closestItemId = closest.id;
-            projectPane._insertBefore = insertBefore;
+            // Store drop information on the project detail pane
+            projectDetail._closestItemId = closest.id;
+            projectDetail._insertBefore = insertBefore;
             
             // Show indicator
             const indicator = document.createElement('div');
@@ -1924,10 +2088,10 @@
             
             const target = e.currentTarget;
             
-            // Check if dropped in a project pane for reordering
-            const projectPane = target.closest('.project-pane');
-            if (projectPane && projectPane._closestItemId && item.status === 'projects') {
-                const projectId = parseInt(projectPane.dataset.projectId);
+            // Check if dropped in the project detail pane for reordering
+            const projectDetail = target.closest('#projects-detail');
+            if (projectDetail && projectDetail._closestItemId && item.status === 'projects') {
+                const projectId = parseInt(projectDetail.dataset.projectId);
                 
                 if (item.projectId === projectId) {
                     // Reordering within same project
@@ -1936,11 +2100,11 @@
                         .sort((a, b) => (a.position || 0) - (b.position || 0));
                     
                     const oldIndex = projectItems.findIndex(i => i.id === draggedItem);
-                    let targetIndex = projectItems.findIndex(i => i.id === projectPane._closestItemId);
+                    let targetIndex = projectItems.findIndex(i => i.id === projectDetail._closestItemId);
                     
                     if (oldIndex !== -1 && targetIndex !== -1) {
                         // If inserting after, increment target index
-                        if (!projectPane._insertBefore) {
+                        if (!projectDetail._insertBefore) {
                             targetIndex++;
                         }
                         
@@ -1965,6 +2129,10 @@
                         }
                     }
                     await loadData();
+                    // Re-select the project to refresh the view
+                    if (selectedProjectId) {
+                        selectProject(selectedProjectId);
+                    }
                     return;
                 }
             }
@@ -2000,7 +2168,7 @@
                     body: JSON.stringify({ status: newStatus, projectId: null, position: 0 })
                 });
             } else if (newProjectId) {
-                // Dropped into a project pane
+                // Dropped into a project (via project detail pane)
                 const projectId = parseInt(newProjectId);
                 const projectItems = data.items.filter(i => i.projectId === projectId && i.status === 'projects');
                 const maxPos = projectItems.length > 0 ? Math.max(...projectItems.map(i => i.position || 0)) : -1;
@@ -2166,10 +2334,7 @@
             
             const itemId = contextMenuItem.id; // Save the ID before hiding the menu
             
-            if (action === 'edit') {
-                hideContextMenu();
-                openItemModal(itemId);
-            } else if (action === 'move-inbox') {
+            if (action === 'move-inbox') {
                 await moveItemTo(itemId, 'inbox');
                 hideContextMenu();
             } else if (action === 'move-someday') {
