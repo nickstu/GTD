@@ -1760,28 +1760,34 @@
                 // Mouse down - start timer to enable dragging after 150ms
                 el.addEventListener('mousedown', function(e) {
                     if (e.button !== 0) return; // Only left mouse button
+                    console.log('[mousedown] project:', projectId, 'draggable before:', el.getAttribute('draggable'));
                     isDragAllowed = false;
                     
                     // Set draggable after 150ms hold
                     dragTimer = setTimeout(() => {
+                        console.log('[timer fired] setting draggable=true for project:', projectId);
                         el.setAttribute('draggable', 'true');
                     }, 150);
                 });
                 
                 // Mouse up - cancel timer and clean up
                 el.addEventListener('mouseup', function(e) {
+                    console.log('[mouseup] project:', projectId, 'timer exists:', !!dragTimer, 'isDragAllowed:', isDragAllowed, 'draggable:', el.getAttribute('draggable'));
                     if (dragTimer) {
                         clearTimeout(dragTimer);
                         dragTimer = null;
+                        console.log('[mouseup] timer canceled');
                     }
                     if (!isDragAllowed) {
                         el.removeAttribute('draggable');
                         el.style.cursor = 'pointer';
+                        console.log('[mouseup] removed draggable');
                     }
                 });
                 
                 // Drag handlers
                 el.addEventListener('dragstart', function(e) {
+                    console.log('[dragstart] project:', projectId, 'draggable:', el.getAttribute('draggable'));
                     // If dragstart fires, it means draggable was set (150ms elapsed)
                     isDragAllowed = true;
                     el.style.cursor = 'move';
@@ -1789,14 +1795,17 @@
                 });
                 
                 el.addEventListener('dragend', function(e) {
+                    console.log('[dragend] project:', projectId);
                     handleProjectDragEnd(e);
                     isDragAllowed = false;
                     if (dragTimer) {
                         clearTimeout(dragTimer);
                         dragTimer = null;
+                        console.log('[dragend] timer canceled');
                     }
                     el.removeAttribute('draggable');
                     el.style.cursor = 'pointer';
+                    console.log('[dragend] removed draggable');
                 });
                 
                 el.addEventListener('dragover', handleProjectDragOver);
