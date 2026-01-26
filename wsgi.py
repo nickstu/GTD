@@ -2,6 +2,7 @@
 """WSGI adapter for PythonAnywhere deployment"""
 import json
 import os
+import hashlib
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 from http.cookies import SimpleCookie
@@ -9,6 +10,25 @@ import secrets
 
 USERS_FILE = "users.json"
 SESSIONS_FILE = "sessions.json"
+
+def hash_password(password):
+    """Hash a password using SHA256 with salt"""
+    salt = secrets.token_hex(16)
+    pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
+    return salt + ':' + pwd_hash.hex()
+
+def verify_password(password, hashed):
+    """Verify a password against a hash"""
+    if hashed is None:
+        return False
+    try:
+        salt, pwd_hash = hashed.split(':')
+        check_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
+        return pwd_hash == check_hash.hex()
+    except Exception as e:
+        # If format is wrong, might be old plain text password
+        print(f"Password verification error: {e}, hashed={hashed}")
+        return False
 
 def load_sessions():
     if os.path.exists(SESSIONS_FILE):
@@ -27,10 +47,10 @@ def load_users():
         with open(USERS_FILE, 'r') as f:
             users = json.load(f)
         if 'admin' not in users:
-            users['admin'] = {"password": "admin", "isAdmin": True}
+            users['admin'] = {"password": hash_password("admin"), "isAdmin": True}
             save_users(users)
         return users
-    default_users = {"admin": {"password": "admin", "isAdmin": True}}
+    default_users = {"admin": {"password": hash_password("admin"), "isAdmin": True}}
     save_users(default_users)
     return default_users
 
@@ -140,31 +160,45 @@ def application(environ, start_response):
             username = req_data.get('username', '').strip()
             password = req_data.get('password', '')
             
-            if not username or not password:
-                response = {"success": False, "message": "Username and password required"}
+            if not username:
+                response = {"success": False, "message": "Username required"}
             else:
                 users = load_users()
-                if username in users and users[username]['password'] == password:
-                    session_id = secrets.token_hex(16)
-                    sessions[session_id] = username
-                    save_sessions(sessions)
-                    
-                    is_admin = users[username].get('isAdmin', False)
-                    
-                    status = '200 OK'
-                    cookie = SimpleCookie()
-                    cookie['session_id'] = session_id
-                    cookie['session_id']['path'] = '/'
-                    cookie['session_id']['max-age'] = 86400  # 24 hours
-                    
-                    headers = [
-                        ('Content-type', 'application/json'),
-                        ('Set-Cookie', cookie['session_id'].OutputString())
-                    ]
-                    start_response(status, headers)
-                    return [json.dumps({"success": True, "username": username, "isAdmin": is_admin}).encode('utf-8')]
+                if username in users:
+                    # Check if user needs password reset
+                    if users[username].get('needsPasswordReset', False):
+                        # User needs to set password - allow login with empty password
+                        if password == '':
+                            response = {"success": True, "needsPasswordSetup": True, "username": username}
+                        else:
+                            response = {"success": False, "message": "Please login with empty password to set your password"}
+                    else:
+                        # Normal login flow - password required
+                        if not password:
+                            response = {"success": False, "message": "Password required"}
+                        elif verify_password(password, users[username]['password']):
+                            session_id = secrets.token_hex(16)
+                            sessions[session_id] = username
+                            save_sessions(sessions)
+                            
+                            is_admin = users[username].get('isAdmin', False)
+                            
+                            status = '200 OK'
+                            cookie = SimpleCookie()
+                            cookie['session_id'] = session_id
+                            cookie['session_id']['path'] = '/'
+                            cookie['session_id']['max-age'] = 86400  # 24 hours
+                            
+                            headers = [
+                                ('Content-type', 'application/json'),
+                                ('Set-Cookie', cookie['session_id'].OutputString())
+                            ]
+                            start_response(status, headers)
+                            return [json.dumps({"success": True, "username": username, "isAdmin": is_admin}).encode('utf-8')]
+                        else:
+                            response = {"success": False, "message": "Invalid password"}
                 else:
-                    response = {"success": False, "message": "Invalid credentials"}
+                    response = {"success": False, "message": "Account does not exist"}
             
             status = '200 OK'
             headers = [('Content-type', 'application/json')]
@@ -215,15 +249,13 @@ def application(environ, start_response):
                 return [json.dumps({"error": "Admin access required"}).encode('utf-8')]
             
             new_username = req_data.get('username', '').strip()
-            new_password = req_data.get('password', '')
-            is_admin = req_data.get('isAdmin', False)
             
-            if not new_username or not new_password:
-                response = {"success": False, "message": "Username and password required"}
+            if not new_username:
+                response = {"success": False, "message": "Username required"}
             elif new_username in users:
                 response = {"success": False, "message": "Username already exists"}
             else:
-                users[new_username] = {"password": new_password, "isAdmin": is_admin}
+                users[new_username] = {"password": None, "isAdmin": False, "needsPasswordReset": True}
                 save_users(users)
                 response = {"success": True, "message": f"User '{new_username}' created successfully"}
             
@@ -284,6 +316,79 @@ def application(environ, start_response):
                     os.remove(data_file)
                 
                 response = {"success": True, "message": f"User '{delete_username}' deleted"}
+            
+            status = '200 OK'
+            headers = [('Content-type', 'application/json')]
+            start_response(status, headers)
+            return [json.dumps(response).encode('utf-8')]
+        
+        elif path == '/api/admin/reset-password':
+            username = get_session_username(environ)
+            if not username:
+                status = '401 Unauthorized'
+                headers = [('Content-type', 'application/json')]
+                start_response(status, headers)
+                return [json.dumps({"error": "Not authenticated"}).encode('utf-8')]
+            
+            users = load_users()
+            if not users.get(username, {}).get('isAdmin', False):
+                status = '403 Forbidden'
+                headers = [('Content-type', 'application/json')]
+                start_response(status, headers)
+                return [json.dumps({"error": "Admin access required"}).encode('utf-8')]
+            
+            reset_username = req_data.get('username', '').strip()
+            
+            if reset_username not in users:
+                response = {"success": False, "message": "User not found"}
+            else:
+                users[reset_username]['password'] = None
+                users[reset_username]['needsPasswordReset'] = True
+                save_users(users)
+                response = {"success": True, "message": f"Password reset for '{reset_username}'"}
+            
+            status = '200 OK'
+            headers = [('Content-type', 'application/json')]
+            start_response(status, headers)
+            return [json.dumps(response).encode('utf-8')]
+        
+        elif path == '/api/set-password':
+            set_username = req_data.get('username', '').strip()
+            new_password = req_data.get('password', '')
+            
+            if not set_username or not new_password:
+                response = {"success": False, "message": "Username and password required"}
+            else:
+                users = load_users()
+                
+                if set_username not in users:
+                    response = {"success": False, "message": "User not found"}
+                elif not users[set_username].get('needsPasswordReset', False):
+                    response = {"success": False, "message": "User does not need password reset"}
+                else:
+                    users[set_username]['password'] = hash_password(new_password)
+                    users[set_username]['needsPasswordReset'] = False
+                    save_users(users)
+                    
+                    # Create session for the user
+                    session_id = secrets.token_hex(16)
+                    sessions[session_id] = set_username
+                    save_sessions(sessions)
+                    
+                    is_admin = users[set_username].get('isAdmin', False)
+                    
+                    status = '200 OK'
+                    cookie = SimpleCookie()
+                    cookie['session_id'] = session_id
+                    cookie['session_id']['path'] = '/'
+                    cookie['session_id']['max-age'] = 86400
+                    
+                    headers = [
+                        ('Content-type', 'application/json'),
+                        ('Set-Cookie', cookie['session_id'].OutputString())
+                    ]
+                    start_response(status, headers)
+                    return [json.dumps({"success": True, "username": set_username, "isAdmin": is_admin}).encode('utf-8')]
             
             status = '200 OK'
             headers = [('Content-type', 'application/json')]
