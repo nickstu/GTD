@@ -21,12 +21,15 @@ def hash_password(password):
 
 def verify_password(password, hashed):
     """Verify a password against a hash"""
+    if hashed is None:
+        return False
     try:
         salt, pwd_hash = hashed.split(':')
         check_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
         return pwd_hash == check_hash.hex()
-    except:
+    except Exception as e:
         # If format is wrong, might be old plain text password
+        print(f"Password verification error: {e}, hashed={hashed}")
         return False
 
 def load_sessions():
@@ -121,8 +124,8 @@ class GTDHandler(BaseHTTPRequestHandler):
             username = req_data.get('username', '').strip()
             password = req_data.get('password', '')
             
-            if not username or not password:
-                self.send_json({"success": False, "message": "Username and password required"})
+            if not username:
+                self.send_json({"success": False, "message": "Username required"})
                 return
             
             users = load_users()
@@ -138,7 +141,11 @@ class GTDHandler(BaseHTTPRequestHandler):
                         self.send_json({"success": False, "message": "Please login with empty password to set your password"})
                     return
                 
-                # Normal login flow
+                # Normal login flow - password required for normal users
+                if not password:
+                    self.send_json({"success": False, "message": "Password required"})
+                    return
+                
                 if verify_password(password, users[username]['password']):
                     # Successful login
                     session_id = secrets.token_hex(16)
