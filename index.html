@@ -725,6 +725,114 @@
             background: #6c757d;
         }
         
+        /* Context Menu Styles */
+        #contextMenu {
+            position: fixed;
+            background: #242831;
+            border: 1px solid #3a3f4b;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            z-index: 3000;
+            min-width: 180px;
+            display: none;
+        }
+        
+        #contextMenu.show {
+            display: block;
+        }
+        
+        .context-menu-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #e4e6eb;
+            border-bottom: 1px solid #3a3f4b;
+        }
+        
+        .context-menu-item:last-child {
+            border-bottom: none;
+        }
+        
+        .context-menu-item:hover {
+            background: #2a2f3a;
+        }
+        
+        .context-menu-item:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .context-menu-item:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+        
+        /* Project Selection Modal */
+        #projectSelectModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3500;
+        }
+        
+        #projectSelectModal.show {
+            display: flex;
+        }
+        
+        .project-select-box {
+            background: #242831;
+            padding: 30px;
+            border-radius: 12px;
+            width: 400px;
+            max-width: 90%;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .project-select-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .project-select-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .project-select-item {
+            padding: 12px;
+            background: #1a1d23;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .project-select-item:hover {
+            background: #2a2f3a;
+            border-color: #0d6efd;
+        }
+        
+        .project-select-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .project-select-buttons button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
         /* Mobile Styles */
         @media (max-width: 768px) {
             body {
@@ -777,6 +885,7 @@
             .project-pane {
                 width: 100%;
                 min-width: auto;
+                max-width: none;
             }
             
             .project-pane-insert-indicator.before {
@@ -967,6 +1076,25 @@
                 <button class="btn btn-danger" onclick="deleteItem()">Delete</button>
                 <button class="btn btn-secondary" onclick="closeItemModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="saveItem()">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Context Menu -->
+    <div id="contextMenu">
+        <div class="context-menu-item" data-action="edit">📝 Edit</div>
+        <div class="context-menu-item" data-action="move-inbox">📥 Move to Inbox</div>
+        <div class="context-menu-item" data-action="move-someday">💭 Move to Someday</div>
+        <div class="context-menu-item" data-action="move-project">📁 Move to Project</div>
+    </div>
+    
+    <!-- Project Selection Modal -->
+    <div id="projectSelectModal" onclick="if(event.target === this) closeProjectSelectModal()">
+        <div class="project-select-box">
+            <div class="project-select-title">Select Project</div>
+            <div class="project-select-list" id="projectSelectList"></div>
+            <div class="project-select-buttons">
+                <button class="btn btn-secondary" onclick="closeProjectSelectModal()">Cancel</button>
             </div>
         </div>
     </div>
@@ -1417,7 +1545,8 @@
                 el.addEventListener('drop', handleDrop);
                 el.addEventListener('click', function(e) {
                     if (!e.target.classList.contains('checkbox')) {
-                        openItemModal(parseInt(el.dataset.id));
+                        e.preventDefault();
+                        showContextMenu(e, parseInt(el.dataset.id));
                     }
                 });
             });
@@ -1880,6 +2009,117 @@
             await loadData();
         }
         
+        // Context Menu Functions
+        let contextMenuItem = null;
+        
+        function showContextMenu(event, itemId) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            contextMenuItem = data.items.find(i => i.id === itemId);
+            if (!contextMenuItem) return;
+            
+            const contextMenu = document.getElementById('contextMenu');
+            const menuItems = contextMenu.querySelectorAll('.context-menu-item');
+            
+            // Show/hide menu items based on current item status
+            menuItems.forEach(item => {
+                const action = item.getAttribute('data-action');
+                
+                // Hide current area from the menu
+                if (action === 'move-inbox' && contextMenuItem.status === 'inbox') {
+                    item.style.display = 'none';
+                } else if (action === 'move-someday' && contextMenuItem.status === 'someday') {
+                    item.style.display = 'none';
+                } else if (action === 'move-project' && contextMenuItem.status === 'projects') {
+                    item.style.display = 'none';
+                } else {
+                    item.style.display = 'block';
+                }
+            });
+            
+            // Position the menu at click location
+            contextMenu.style.left = event.pageX + 'px';
+            contextMenu.style.top = event.pageY + 'px';
+            contextMenu.classList.add('show');
+        }
+        
+        function hideContextMenu() {
+            document.getElementById('contextMenu').classList.remove('show');
+            contextMenuItem = null;
+        }
+        
+        async function handleContextMenuAction(action) {
+            if (!contextMenuItem) return;
+            
+            console.log('Context menu action:', action, 'Item:', contextMenuItem);
+            
+            const itemId = contextMenuItem.id; // Save the ID before hiding the menu
+            
+            if (action === 'edit') {
+                hideContextMenu();
+                openItemModal(itemId);
+            } else if (action === 'move-inbox') {
+                await moveItemTo(itemId, 'inbox');
+                hideContextMenu();
+            } else if (action === 'move-someday') {
+                await moveItemTo(itemId, 'someday');
+                hideContextMenu();
+            } else if (action === 'move-project') {
+                console.log('About to show project select modal');
+                hideContextMenu();
+                showProjectSelectModal(itemId);
+            }
+        }
+        
+        async function moveItemTo(itemId, targetStatus, projectId = null) {
+            const updates = {
+                status: targetStatus,
+                projectId: projectId
+            };
+            
+            await fetch('/api/items/' + itemId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updates)
+            });
+            
+            await loadData();
+        }
+        
+        function showProjectSelectModal(itemId) {
+            console.log('showProjectSelectModal called with itemId:', itemId);
+            const item = data.items.find(i => i.id === itemId);
+            if (!item) {
+                console.log('Item not found!');
+                return;
+            }
+            
+            console.log('Projects:', data.projects);
+            const projectList = document.getElementById('projectSelectList');
+            projectList.innerHTML = data.projects.map(project => 
+                '<div class="project-select-item" onclick="selectProjectAndMove(' + itemId + ', ' + project.id + ')">' +
+                project.name +
+                '</div>'
+            ).join('');
+            
+            if (data.projects.length === 0) {
+                projectList.innerHTML = '<div style="color: #adb5bd; text-align: center; padding: 20px;">No projects available. Create a project first.</div>';
+            }
+            
+            console.log('Adding show class to modal');
+            document.getElementById('projectSelectModal').classList.add('show');
+        }
+        
+        function closeProjectSelectModal() {
+            document.getElementById('projectSelectModal').classList.remove('show');
+        }
+        
+        async function selectProjectAndMove(itemId, projectId) {
+            await moveItemTo(itemId, 'projects', projectId);
+            closeProjectSelectModal();
+        }
+        
         function newProject() {
             currentProject = null;
             document.getElementById('projectModalTitle').textContent = 'New Project';
@@ -1956,6 +2196,22 @@
         // Enter key in quick capture
         document.getElementById('quickTitle').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') quickCapture();
+        });
+        
+        // Context menu event listeners
+        document.querySelectorAll('.context-menu-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const action = this.getAttribute('data-action');
+                handleContextMenuAction(action);
+            });
+        });
+        
+        // Hide context menu when clicking elsewhere
+        document.addEventListener('click', function(e) {
+            const contextMenu = document.getElementById('contextMenu');
+            if (!contextMenu.contains(e.target) && contextMenu.classList.contains('show')) {
+                hideContextMenu();
+            }
         });
         
         // Initialize
