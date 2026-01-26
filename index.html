@@ -1655,10 +1655,10 @@
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
         
-        function renderItem(item, showCheckbox = true) {
+        function renderItem(item, showCheckbox = true, draggable = true) {
             const isDone = item.done;
             
-            let html = '<div class="item' + (isDone ? ' done' : '') + '" draggable="true" data-id="' + item.id + '">';
+            let html = '<div class="item' + (isDone ? ' done' : '') + '" draggable="' + draggable + '" data-id="' + item.id + '">';
             
             if (showCheckbox) {
                 html += '<div class="item-with-checkbox">';
@@ -1705,12 +1705,12 @@
             // Calendar
             const calItems = getCalendarItems();
             document.getElementById('calendar-content').innerHTML = 
-                calItems.length ? calItems.map(i => renderItem(i, true)).join('') : '<div class="empty-state">No scheduled items</div>';
+                calItems.length ? calItems.map(i => renderItem(i, true, false)).join('') : '<div class="empty-state">No scheduled items</div>';
             
             // Next Actions
             const nextActions = getNextActions();
             document.getElementById('next-content').innerHTML = 
-                nextActions.length ? nextActions.map(i => renderItem(i, true)).join('') : '<div class="empty-state">No next actions</div>';
+                nextActions.length ? nextActions.map(i => renderItem(i, true, false)).join('') : '<div class="empty-state">No next actions</div>';
             
             // Someday
             document.getElementById('someday-content').innerHTML = 
