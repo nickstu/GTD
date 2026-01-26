@@ -319,8 +319,11 @@
             border-left: 3px solid #0d6efd;
         }
         
-        .project-list-item .drag-handle {
-            font-size: 14px;
+        .project-chevron {
+            font-size: 10px;
+            color: #6c757d;
+            width: 12px;
+            text-align: center;
         }
         
         .project-list-item-name {
@@ -1720,9 +1723,11 @@
             } else {
                 sortedProjects.forEach(project => {
                     const itemCount = data.items.filter(i => i.projectId === project.id && i.status === 'projects' && !i.done).length;
-                    projectsListHtml += '<div class="project-list-item" data-project-id="' + project.id + '" onclick="selectProject(' + project.id + ')">';
-                    projectsListHtml += '<span class="drag-handle" draggable="true">⋮⋮</span>';
-                    projectsListHtml += '<span class="project-list-item-name" oncontextmenu="event.preventDefault(); event.stopPropagation(); editProject(' + project.id + ')">' + project.name + '</span>';
+                    const isActive = selectedProjectId === project.id;
+                    const chevron = isActive ? '▼' : '▶'; // ▼ or ▶
+                    projectsListHtml += '<div class="project-list-item' + (isActive ? ' active' : '') + '" data-project-id="' + project.id + '">';
+                    projectsListHtml += '<span class="project-chevron">' + chevron + '</span>';
+                    projectsListHtml += '<span class="project-list-item-name">' + project.name + '</span>';
                     projectsListHtml += '<span style="font-size: 11px; color: #6c757d;">' + itemCount + '</span>';
                     projectsListHtml += '</div>';
                 });
@@ -1730,15 +1735,62 @@
             
             document.getElementById('projects-list').innerHTML = projectsListHtml;
             
-            // Attach project drag listeners
-            document.querySelectorAll('.projects-sidebar .drag-handle').forEach(el => {
-                const projectItem = el.closest('.project-list-item');
+            // Attach project interaction listeners
+            document.querySelectorAll('.project-list-item').forEach(el => {
+                const projectId = parseInt(el.dataset.projectId);
+                let dragTimer = null;
+                let isDraggable = false;
+                
+                // Left click to select
+                el.addEventListener('click', function(e) {
+                    if (!isDraggable) {
+                        selectProject(projectId);
+                    }
+                });
+                
+                // Right click to edit
+                el.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    editProject(projectId);
+                });
+                
+                // Mouse down - start timer for drag
+                el.addEventListener('mousedown', function(e) {
+                    if (e.button !== 0) return; // Only left mouse button
+                    isDraggable = false;
+                    dragTimer = setTimeout(() => {
+                        isDraggable = true;
+                        el.setAttribute('draggable', 'true');
+                        el.style.cursor = 'move';
+                    }, 300); // 300ms hold to start drag
+                });
+                
+                // Mouse up - cancel timer
+                el.addEventListener('mouseup', function(e) {
+                    clearTimeout(dragTimer);
+                    if (!isDraggable) {
+                        el.removeAttribute('draggable');
+                        el.style.cursor = 'pointer';
+                    }
+                });
+                
+                // Mouse leave - cancel timer
+                el.addEventListener('mouseleave', function(e) {
+                    clearTimeout(dragTimer);
+                });
+                
+                // Drag handlers
                 el.addEventListener('dragstart', handleProjectDragStart);
-                el.addEventListener('dragend', handleProjectDragEnd);
-                projectItem.addEventListener('dragover', handleProjectDragOver);
-                projectItem.addEventListener('dragenter', handleProjectDragEnter);
-                projectItem.addEventListener('dragleave', handleProjectDragLeave);
-                projectItem.addEventListener('drop', handleProjectDrop);
+                el.addEventListener('dragend', function(e) {
+                    handleProjectDragEnd(e);
+                    isDraggable = false;
+                    el.removeAttribute('draggable');
+                    el.style.cursor = 'pointer';
+                });
+                el.addEventListener('dragover', handleProjectDragOver);
+                el.addEventListener('dragenter', handleProjectDragEnter);
+                el.addEventListener('dragleave', handleProjectDragLeave);
+                el.addEventListener('drop', handleProjectDrop);
             });
             
             // Update project selector in edit modal
