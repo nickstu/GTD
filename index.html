@@ -2119,13 +2119,17 @@
                             const draggedItemObj = projectItems[oldIndex];
                             reordered.splice(targetIndex, 0, draggedItemObj);
                             
-                            for (let i = 0; i < reordered.length; i++) {
-                                await fetch('/api/items/' + reordered[i].id, {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ position: i })
-                                });
-                            }
+                            // Batch update all positions in one request
+                            const updates = reordered.map((item, index) => ({
+                                id: item.id,
+                                position: index
+                            }));
+                            
+                            await fetch('/api/items/batch', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(updates)
+                            });
                         }
                     }
                     await loadData();

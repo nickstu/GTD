@@ -451,13 +451,6 @@ def application(environ, start_response):
     
     # Handle PUT requests
     elif method == 'PUT':
-        path_parts = path.split('/')
-        if len(path_parts) < 4:
-            status = '400 Bad Request'
-            headers = [('Content-type', 'text/plain')]
-            start_response(status, headers)
-            return [b'Bad Request']
-        
         username = get_session_username(environ)
         if not username:
             status = '401 Unauthorized'
@@ -470,6 +463,41 @@ def application(environ, start_response):
         updates = json.loads(body) if body else {}
         
         data = load_data(username)
+        
+        # Batch update endpoint for multiple items
+        if path == '/api/items/batch':
+            if not isinstance(updates, list):
+                status = '400 Bad Request'
+                headers = [('Content-type', 'application/json')]
+                start_response(status, headers)
+                return [json.dumps({"error": "Expected array of updates"}).encode('utf-8')]
+            
+            updated_count = 0
+            for update in updates:
+                item_id = update.get('id')
+                if not item_id:
+                    continue
+                for i, item in enumerate(data['items']):
+                    if item['id'] == item_id:
+                        # Remove 'id' from updates to avoid overwriting
+                        item_updates = {k: v for k, v in update.items() if k != 'id'}
+                        data['items'][i].update(item_updates)
+                        updated_count += 1
+                        break
+            
+            save_data(username, data)
+            status = '200 OK'
+            headers = [('Content-type', 'application/json')]
+            start_response(status, headers)
+            return [json.dumps({"updated": updated_count}).encode('utf-8')]
+        
+        path_parts = path.split('/')
+        if len(path_parts) < 4:
+            status = '400 Bad Request'
+            headers = [('Content-type', 'text/plain')]
+            start_response(status, headers)
+            return [b'Bad Request']
+        
         item_id = int(path_parts[3])
         
         if path_parts[2] == 'items':

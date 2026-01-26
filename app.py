@@ -355,10 +355,6 @@ class GTDHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         parts = path.split('/')
         
-        if len(parts) < 4:
-            self.send_error(400)
-            return
-        
         username = self.get_session_username()
         if not username:
             self.send_error(401, "Not authenticated")
@@ -369,6 +365,34 @@ class GTDHandler(BaseHTTPRequestHandler):
         updates = json.loads(body) if body else {}
         
         data = load_data(username)
+        
+        # Batch update endpoint for multiple items
+        if path == '/api/items/batch':
+            if not isinstance(updates, list):
+                self.send_error(400, "Expected array of updates")
+                return
+            
+            updated_count = 0
+            for update in updates:
+                item_id = update.get('id')
+                if not item_id:
+                    continue
+                for i, item in enumerate(data['items']):
+                    if item['id'] == item_id:
+                        # Remove 'id' from updates to avoid overwriting
+                        item_updates = {k: v for k, v in update.items() if k != 'id'}
+                        data['items'][i].update(item_updates)
+                        updated_count += 1
+                        break
+            
+            save_data(username, data)
+            self.send_json({"updated": updated_count})
+            return
+        
+        if len(parts) < 4:
+            self.send_error(400)
+            return
+        
         item_id = int(parts[3])
         
         if parts[2] == 'items':
