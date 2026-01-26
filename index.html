@@ -960,6 +960,10 @@
                     <div class="quick-capture-row">
                         <input type="date" id="quickDate">
                         <input type="time" id="quickTime">
+                        <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;">
+                            <input type="checkbox" id="quickDeadline" style="cursor: pointer;">
+                            <span>Deadline</span>
+                        </label>
                     </div>
                     <button onclick="quickCapture()">Add</button>
                 </div>
@@ -1069,7 +1073,7 @@
             <div class="form-group">
                 <label class="form-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                     <input type="checkbox" id="editDeadline" style="cursor: pointer;">
-                    <span>This date is a deadline (can be done earlier)</span>
+                    <span>Deadline</span>
                 </label>
             </div>
             <div class="form-group">
@@ -1460,13 +1464,14 @@
                 
                 console.log('Rendering item', item.title, '- dueDatetime:', item.dueDatetime, 'itemDate:', itemDate, 'todayStr:', todayStr, 'isToday:', isToday);
                 
-                titleHtml += '<span style="color: #6c757d; font-size: 11px; margin-right: 6px;">📅 ';
+                titleHtml += '<span style="color: #6c757d; font-size: 11px; margin-right: 6px;">';
                 if (isToday) {
                     titleHtml += '<span style="color: #ff8c00;">Today</span>';
                 } else {
                     titleHtml += formatDate(item.dueDatetime);
                 }
                 if (item.startTime) titleHtml += ' ' + item.startTime;
+                if (item.deadline) titleHtml += ' (D)';
                 titleHtml += '</span>';
             }
             titleHtml += item.title;
@@ -1925,6 +1930,7 @@
             
             const date = document.getElementById('quickDate').value;
             const time = document.getElementById('quickTime').value;
+            const deadline = document.getElementById('quickDeadline').checked;
             
             await fetch('/api/items', {
                 method: 'POST',
@@ -1934,6 +1940,7 @@
                     status: 'inbox',
                     dueDatetime: date || null,
                     startTime: time || null,
+                    deadline: deadline,
                     position: 0
                 })
             });
@@ -1941,6 +1948,7 @@
             document.getElementById('quickTitle').value = '';
             document.getElementById('quickDate').value = '';
             document.getElementById('quickTime').value = '';
+            document.getElementById('quickDeadline').checked = false;
             
             await loadData();
         }
