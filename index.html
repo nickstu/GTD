@@ -1067,6 +1067,12 @@
                 <input type="time" id="editTime" class="form-control">
             </div>
             <div class="form-group">
+                <label class="form-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="editDeadline" style="cursor: pointer;">
+                    <span>This date is a deadline (can be done earlier)</span>
+                </label>
+            </div>
+            <div class="form-group">
                 <label class="form-label">Project</label>
                 <select id="editProject" class="form-control">
                     <option value="">None</option>
@@ -1397,13 +1403,14 @@
                 }
             });
             
-            // Step 2: Add any other not-done items from any zone with today's date
+            // Step 2: Add any other not-done items from any zone with today's date or future deadlines
             const candidateIds = new Set(candidates.map(c => c.id));
             data.items.forEach(item => {
                 if (item.dueDatetime && !item.done && !candidateIds.has(item.id)) {
                     const itemDate = item.dueDatetime.includes('T') ? item.dueDatetime.split('T')[0] : item.dueDatetime;
-                    console.log('Item', item.title, 'date:', itemDate, 'equals today?', itemDate === todayStr);
-                    if (itemDate === todayStr) {
+                    console.log('Item', item.title, 'date:', itemDate, 'equals today?', itemDate === todayStr, 'is deadline?', item.deadline);
+                    // Include if it's today's date OR if it's a deadline (can be done in advance)
+                    if (itemDate === todayStr || item.deadline) {
                         const project = item.projectId ? data.projects.find(p => p.id === item.projectId) : null;
                         candidates.push({ ...item, project });
                     }
@@ -1412,13 +1419,15 @@
             
             console.log('Candidates before filtering:', candidates.length);
             
-            // Step 3: Filter candidates to only include items with no date OR today's date
+            // Step 3: Filter candidates to only include items with no date OR today's date OR future deadlines
             const nextActions = candidates.filter(item => {
                 if (!item.dueDatetime) return true; // No date = include
                 const itemDate = item.dueDatetime.includes('T') ? item.dueDatetime.split('T')[0] : item.dueDatetime;
-                const matches = itemDate === todayStr;
-                console.log('Filtering', item.title, 'itemDate:', itemDate, 'matches today?', matches);
-                return matches; // Only include if date is today
+                const isToday = itemDate === todayStr;
+                const isDeadline = item.deadline;
+                const matches = isToday || isDeadline;
+                console.log('Filtering', item.title, 'itemDate:', itemDate, 'is today?', isToday, 'is deadline?', isDeadline, 'included?', matches);
+                return matches; // Include if date is today OR it's a deadline
             });
             
             console.log('Next actions after filtering:', nextActions.length);
@@ -1958,6 +1967,7 @@
             document.getElementById('editNotes').value = currentItem.notes || '';
             document.getElementById('editDate').value = currentItem.dueDatetime ? currentItem.dueDatetime.split('T')[0] : '';
             document.getElementById('editTime').value = currentItem.startTime || '';
+            document.getElementById('editDeadline').checked = currentItem.deadline || false;
             document.getElementById('editProject').value = currentItem.projectId || '';
             
             document.getElementById('itemModal').classList.add('show');
@@ -1979,6 +1989,7 @@
                 notes: document.getElementById('editNotes').value || null,
                 dueDatetime: document.getElementById('editDate').value || null,
                 startTime: document.getElementById('editTime').value || null,
+                deadline: document.getElementById('editDeadline').checked,
                 projectId: parseInt(document.getElementById('editProject').value) || null
             };
             
