@@ -1740,7 +1740,7 @@
             // Attach project interaction listeners
             document.querySelectorAll('.project-list-item').forEach(el => {
                 const projectId = parseInt(el.dataset.projectId);
-                let mouseDownTime = 0;
+                let dragTimer = null;
                 let isDragAllowed = false;
                 
                 // Left click to select
@@ -1757,37 +1757,32 @@
                     editProject(projectId);
                 });
                 
-                // Mouse down - enable dragging and start timer
+                // Mouse down - start timer to enable dragging after 150ms
                 el.addEventListener('mousedown', function(e) {
                     if (e.button !== 0) return; // Only left mouse button
-                    mouseDownTime = Date.now();
                     isDragAllowed = false;
-                    el.setAttribute('draggable', 'true');
+                    
+                    // Set draggable after 150ms hold
+                    dragTimer = setTimeout(() => {
+                        el.setAttribute('draggable', 'true');
+                    }, 150);
                 });
                 
-                // Mouse up - only clean up if drag didn't start
+                // Mouse up - cancel timer and clean up
                 el.addEventListener('mouseup', function(e) {
-                    // Give dragstart a chance to fire first
-                    setTimeout(() => {
-                        if (!isDragAllowed) {
-                            // Drag didn't start, clean up
-                            mouseDownTime = 0;
-                            el.removeAttribute('draggable');
-                            el.style.cursor = 'pointer';
-                        }
-                    }, 0);
+                    if (dragTimer) {
+                        clearTimeout(dragTimer);
+                        dragTimer = null;
+                    }
+                    if (!isDragAllowed) {
+                        el.removeAttribute('draggable');
+                        el.style.cursor = 'pointer';
+                    }
                 });
                 
                 // Drag handlers
                 el.addEventListener('dragstart', function(e) {
-                    const holdTime = Date.now() - mouseDownTime;
-                    if (holdTime < 150) {
-                        // Not held long enough, cancel drag
-                        e.preventDefault();
-                        el.removeAttribute('draggable');
-                        return;
-                    }
-                    // Held long enough, allow drag
+                    // If dragstart fires, it means draggable was set (150ms elapsed)
                     isDragAllowed = true;
                     el.style.cursor = 'move';
                     handleProjectDragStart(e);
@@ -1796,7 +1791,10 @@
                 el.addEventListener('dragend', function(e) {
                     handleProjectDragEnd(e);
                     isDragAllowed = false;
-                    mouseDownTime = 0;
+                    if (dragTimer) {
+                        clearTimeout(dragTimer);
+                        dragTimer = null;
+                    }
                     el.removeAttribute('draggable');
                     el.style.cursor = 'pointer';
                 });
