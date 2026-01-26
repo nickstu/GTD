@@ -956,6 +956,19 @@
         </div>
     </div>
     
+    <!-- Password Setup Modal -->
+    <div id="passwordSetupModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 2000;">
+        <div class="login-box">
+            <h1 class="login-title">Set Your Password</h1>
+            <form class="login-form" onsubmit="setPassword(event)">
+                <input type="password" id="setupPassword" class="login-input" placeholder="Choose Password" required autocomplete="new-password">
+                <input type="password" id="setupPasswordConfirm" class="login-input" placeholder="Confirm Password" required autocomplete="new-password">
+                <button type="submit" class="login-btn">Set Password</button>
+                <div id="setupError" class="login-error"></div>
+            </form>
+        </div>
+    </div>
+    
     <div id="appContent" class="container">
         <!-- Top Row: Inbox, Calendar, Next Actions, Someday, Account -->
         <div class="grid-row">
@@ -1044,10 +1057,10 @@
                 <h3>Create New User</h3>
                 <form class="create-user-form" onsubmit="createUser(event)">
                     <input type="text" id="newUsername" class="form-control" placeholder="Username" required>
-                    <input type="password" id="newPassword" class="form-control" placeholder="Password" required>
                     <button type="submit" class="btn btn-primary">Create User</button>
                     <div id="createUserError" class="login-error"></div>
                 </form>
+                <div class="login-info" style="margin-top: 8px;">New users will be prompted to set their password on first login</div>
             </div>
             
             <button class="admin-close-btn" onclick="closeAdminPanel()">Close</button>
@@ -1182,21 +1195,71 @@
                 const result = await response.json();
                 
                 if (result.success) {
+                    if (result.needsPasswordSetup) {
+                        // User needs to set password
+                        document.getElementById('loginModal').style.display = 'none';
+                        document.getElementById('passwordSetupModal').style.display = 'flex';
+                        window.setupUsername = username;
+                    } else {
+                        // Normal login
+                        currentUser = result.username;
+                        isAdmin = result.isAdmin || false;
+                        document.getElementById('currentUser').textContent = currentUser;
+                        if (isAdmin) {
+                            document.getElementById('adminBtn').style.display = 'inline-block';
+                        }
+                        document.getElementById('loginModal').style.display = 'none';
+                        document.getElementById('appContent').classList.add('show');
+                        document.getElementById('loginError').textContent = '';
+                        await loadData();
+                    }
+                } else {
+                    document.getElementById('loginError').textContent = result.message;
+                }
+            } catch (error) {
+                document.getElementById('loginError').textContent = 'Login failed. Please try again.';
+            }
+        }
+        
+        async function setPassword(e) {
+            e.preventDefault();
+            const password = document.getElementById('setupPassword').value;
+            const confirm = document.getElementById('setupPasswordConfirm').value;
+            
+            if (password !== confirm) {
+                document.getElementById('setupError').textContent = 'Passwords do not match';
+                return;
+            }
+            
+            if (password.length < 4) {
+                document.getElementById('setupError').textContent = 'Password must be at least 4 characters';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/set-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: window.setupUsername, password })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
                     currentUser = result.username;
                     isAdmin = result.isAdmin || false;
                     document.getElementById('currentUser').textContent = currentUser;
                     if (isAdmin) {
                         document.getElementById('adminBtn').style.display = 'inline-block';
                     }
-                    document.getElementById('loginModal').style.display = 'none';
+                    document.getElementById('passwordSetupModal').style.display = 'none';
                     document.getElementById('appContent').classList.add('show');
-                    document.getElementById('loginError').textContent = '';
                     await loadData();
                 } else {
-                    document.getElementById('loginError').textContent = result.message;
+                    document.getElementById('setupError').textContent = result.message;
                 }
             } catch (error) {
-                document.getElementById('loginError').textContent = 'Login failed. Please try again.';
+                document.getElementById('setupError').textContent = 'Failed to set password. Please try again.';
             }
         }
         
@@ -1258,9 +1321,12 @@
                             <strong>${user.username}</strong>
                             ${user.isAdmin ? '<span class="user-badge">ADMIN</span>' : ''}
                         </div>
-                        ${user.username !== 'admin' ? 
-                            `<button class="delete-user-btn" onclick="deleteUser('${user.username}')">Delete</button>` : 
-                            ''}
+                        <div style="display: flex; gap: 8px;">
+                            ${user.username !== 'admin' ? 
+                                `<button class="delete-user-btn" onclick="resetPassword('${user.username}')" style="background: #ffc107; color: #000;">Reset Password</button>
+                                <button class="delete-user-btn" onclick="deleteUser('${user.username}')">Delete</button>` : 
+                                ''}
+                        </div>
                     </div>
                 `).join('');
                 
@@ -1274,20 +1340,18 @@
             e.preventDefault();
             
             const username = document.getElementById('newUsername').value.trim();
-            const password = document.getElementById('newPassword').value;
             
             try {
                 const response = await fetch('/api/admin/create-user', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ username })
                 });
                 
                 const result = await response.json();
                 
                 if (result.success) {
                     document.getElementById('newUsername').value = '';
-                    document.getElementById('newPassword').value = '';
                     document.getElementById('createUserError').textContent = '';
                     await loadUsers();
                     alert(result.message);
@@ -1296,6 +1360,28 @@
                 }
             } catch (error) {
                 document.getElementById('createUserError').textContent = 'Failed to create user';
+            }
+        }
+        
+        async function resetPassword(username) {
+            if (!confirm(`Reset password for "${username}"? They will be prompted to set a new password on next login.`)) return;
+            
+            try {
+                const response = await fetch('/api/admin/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(result.message);
+                } else {
+                    alert('Failed to reset password: ' + result.message);
+                }
+            } catch (error) {
+                alert('Failed to reset password');
             }
         }
         

@@ -2,6 +2,7 @@
 """GTD Task Manager - Python Implementation"""
 import json
 import os
+import hashlib
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
@@ -11,6 +12,22 @@ import secrets
 
 USERS_FILE = "users.json"
 SESSIONS_FILE = "sessions.json"
+
+def hash_password(password):
+    """Hash a password using SHA256 with salt"""
+    salt = secrets.token_hex(16)
+    pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
+    return salt + ':' + pwd_hash.hex()
+
+def verify_password(password, hashed):
+    """Verify a password against a hash"""
+    try:
+        salt, pwd_hash = hashed.split(':')
+        check_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
+        return pwd_hash == check_hash.hex()
+    except:
+        # If format is wrong, might be old plain text password
+        return False
 
 def load_sessions():
     if os.path.exists(SESSIONS_FILE):
@@ -30,11 +47,11 @@ def load_users():
             users = json.load(f)
         # Ensure admin account always exists
         if 'admin' not in users:
-            users['admin'] = {"password": "admin", "isAdmin": True}
+            users['admin'] = {"password": hash_password("admin"), "isAdmin": True}
             save_users(users)
         return users
     # Create default admin account
-    default_users = {"admin": {"password": "admin", "isAdmin": True}}
+    default_users = {"admin": {"password": hash_password("admin"), "isAdmin": True}}
     save_users(default_users)
     return default_users
 
@@ -112,7 +129,17 @@ class GTDHandler(BaseHTTPRequestHandler):
             
             # Check if user exists
             if username in users:
-                if users[username]['password'] == password:
+                # Check if user needs password reset
+                if users[username].get('needsPasswordReset', False):
+                    # User needs to set password - allow login with empty password
+                    if password == '':
+                        self.send_json({"success": True, "needsPasswordSetup": True, "username": username})
+                    else:
+                        self.send_json({"success": False, "message": "Please login with empty password to set your password"})
+                    return
+                
+                # Normal login flow
+                if verify_password(password, users[username]['password']):
                     # Successful login
                     session_id = secrets.token_hex(16)
                     sessions[session_id] = username
@@ -159,17 +186,16 @@ class GTDHandler(BaseHTTPRequestHandler):
                 return
             
             new_username = req_data.get('username', '').strip()
-            new_password = req_data.get('password', '')
             
-            if not new_username or not new_password:
-                self.send_json({"success": False, "message": "Username and password required"})
+            if not new_username:
+                self.send_json({"success": False, "message": "Username required"})
                 return
             
             if new_username in users:
                 self.send_json({"success": False, "message": "User already exists"})
                 return
             
-            users[new_username] = {"password": new_password, "isAdmin": False}
+            users[new_username] = {"password": None, "isAdmin": False, "needsPasswordReset": True}
             save_users(users)
             self.send_json({"success": True, "message": f"User '{new_username}' created successfully"})
             return
@@ -219,6 +245,65 @@ class GTDHandler(BaseHTTPRequestHandler):
                 os.remove(data_file)
             
             self.send_json({"success": True, "message": f"User '{delete_username}' deleted"})
+            return
+        
+        if path == '/api/admin/reset-password':
+            username = self.get_session_username()
+            if not username:
+                self.send_error(401, "Not authenticated")
+                return
+            
+            users = load_users()
+            if not users.get(username, {}).get('isAdmin', False):
+                self.send_error(403, "Not authorized")
+                return
+            
+            reset_username = req_data.get('username', '')
+            
+            if reset_username not in users:
+                self.send_json({"success": False, "message": "User not found"})
+                return
+            
+            users[reset_username]['password'] = None
+            users[reset_username]['needsPasswordReset'] = True
+            save_users(users)
+            self.send_json({"success": True, "message": f"Password reset for '{reset_username}'"})
+            return
+        
+        if path == '/api/set-password':
+            set_username = req_data.get('username', '').strip()
+            new_password = req_data.get('password', '')
+            
+            if not set_username or not new_password:
+                self.send_json({"success": False, "message": "Username and password required"})
+                return
+            
+            users = load_users()
+            
+            if set_username not in users:
+                self.send_json({"success": False, "message": "User not found"})
+                return
+            
+            if not users[set_username].get('needsPasswordReset', False):
+                self.send_json({"success": False, "message": "User does not need password reset"})
+                return
+            
+            users[set_username]['password'] = hash_password(new_password)
+            users[set_username]['needsPasswordReset'] = False
+            save_users(users)
+            
+            # Create session for the user
+            session_id = secrets.token_hex(16)
+            sessions[session_id] = set_username
+            save_sessions(sessions)
+            
+            is_admin = users[set_username].get('isAdmin', False)
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Set-Cookie', f'session_id={session_id}; Path=/; HttpOnly')
+            self.end_headers()
+            self.wfile.write(json.dumps({"success": True, "username": set_username, "isAdmin": is_admin}).encode())
             return
         
         username = self.get_session_username()
