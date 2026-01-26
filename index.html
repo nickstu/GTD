@@ -304,10 +304,12 @@
             padding: 12px 16px;
             cursor: pointer;
             border-bottom: 1px solid #2a2f3a;
+            border-left: 3px solid transparent;
             display: flex;
             align-items: center;
             gap: 8px;
             transition: background 0.2s;
+            user-select: none;
         }
         
         .project-list-item:hover {
@@ -316,7 +318,7 @@
         
         .project-list-item.active {
             background: #2a2f3a;
-            border-left: 3px solid #0d6efd;
+            border-left-color: #0d6efd;
         }
         
         .project-chevron {
@@ -1740,6 +1742,8 @@
                 const projectId = parseInt(el.dataset.projectId);
                 let dragTimer = null;
                 let isDraggable = false;
+                let startX = 0;
+                let startY = 0;
                 
                 // Left click to select
                 el.addEventListener('click', function(e) {
@@ -1757,12 +1761,25 @@
                 // Mouse down - start timer for drag
                 el.addEventListener('mousedown', function(e) {
                     if (e.button !== 0) return; // Only left mouse button
+                    startX = e.clientX;
+                    startY = e.clientY;
                     isDraggable = false;
                     dragTimer = setTimeout(() => {
                         isDraggable = true;
                         el.setAttribute('draggable', 'true');
                         el.style.cursor = 'move';
                     }, 300); // 300ms hold to start drag
+                });
+                
+                // Mouse move - if timer active and moved, cancel click
+                el.addEventListener('mousemove', function(e) {
+                    if (dragTimer && !isDraggable) {
+                        const dx = Math.abs(e.clientX - startX);
+                        const dy = Math.abs(e.clientY - startY);
+                        if (dx > 5 || dy > 5) {
+                            clearTimeout(dragTimer);
+                        }
+                    }
                 });
                 
                 // Mouse up - cancel timer
