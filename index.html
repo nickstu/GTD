@@ -1765,11 +1765,17 @@
                     el.setAttribute('draggable', 'true');
                 });
                 
-                // Mouse up - disable dragging
+                // Mouse up - only clean up if drag didn't start
                 el.addEventListener('mouseup', function(e) {
-                    mouseDownTime = 0;
-                    el.removeAttribute('draggable');
-                    el.style.cursor = 'pointer';
+                    // Give dragstart a chance to fire first
+                    setTimeout(() => {
+                        if (!isDragAllowed) {
+                            // Drag didn't start, clean up
+                            mouseDownTime = 0;
+                            el.removeAttribute('draggable');
+                            el.style.cursor = 'pointer';
+                        }
+                    }, 0);
                 });
                 
                 // Drag handlers
