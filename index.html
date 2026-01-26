@@ -421,9 +421,15 @@
         
         .quick-capture-row {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 2fr 1.5fr auto;
             gap: 6px;
             margin-bottom: 6px;
+            align-items: center;
+        }
+        
+        .quick-capture-row label {
+            padding-left: 8px;
+            white-space: nowrap;
         }
         
         .quick-capture button {
