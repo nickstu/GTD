@@ -1742,8 +1742,7 @@
                 const projectId = parseInt(el.dataset.projectId);
                 let dragTimer = null;
                 let isDraggable = false;
-                let startX = 0;
-                let startY = 0;
+                let isMouseDown = false;
                 
                 // Left click to select
                 el.addEventListener('click', function(e) {
@@ -1761,48 +1760,46 @@
                 // Mouse down - start timer for drag
                 el.addEventListener('mousedown', function(e) {
                     if (e.button !== 0) return; // Only left mouse button
-                    startX = e.clientX;
-                    startY = e.clientY;
+                    isMouseDown = true;
                     isDraggable = false;
+                    
                     dragTimer = setTimeout(() => {
-                        isDraggable = true;
-                        el.setAttribute('draggable', 'true');
-                        el.style.cursor = 'move';
+                        if (isMouseDown) {
+                            isDraggable = true;
+                            el.setAttribute('draggable', 'true');
+                            el.style.cursor = 'move';
+                            // Manually trigger drag start
+                            const dragEvent = new DragEvent('dragstart', {
+                                bubbles: true,
+                                cancelable: true
+                            });
+                            el.dispatchEvent(dragEvent);
+                        }
                     }, 150); // 150ms hold to start drag
                 });
                 
-                // Mouse move - if timer active and moved, cancel click
-                el.addEventListener('mousemove', function(e) {
-                    if (dragTimer && !isDraggable) {
-                        const dx = Math.abs(e.clientX - startX);
-                        const dy = Math.abs(e.clientY - startY);
-                        if (dx > 5 || dy > 5) {
-                            clearTimeout(dragTimer);
-                        }
-                    }
-                });
-                
-                // Mouse up - cancel timer
-                el.addEventListener('mouseup', function(e) {
+                // Global mouse up - cancel timer
+                const handleMouseUp = function(e) {
+                    isMouseDown = false;
                     clearTimeout(dragTimer);
                     if (!isDraggable) {
                         el.removeAttribute('draggable');
                         el.style.cursor = 'pointer';
                     }
-                });
+                };
                 
-                // Mouse leave - cancel timer
-                el.addEventListener('mouseleave', function(e) {
-                    clearTimeout(dragTimer);
-                });
+                document.addEventListener('mouseup', handleMouseUp);
+                el.addEventListener('mouseup', handleMouseUp);
                 
                 // Drag handlers
                 el.addEventListener('dragstart', handleProjectDragStart);
                 el.addEventListener('dragend', function(e) {
                     handleProjectDragEnd(e);
                     isDraggable = false;
+                    isMouseDown = false;
                     el.removeAttribute('draggable');
                     el.style.cursor = 'pointer';
+                    clearTimeout(dragTimer);
                 });
                 el.addEventListener('dragover', handleProjectDragOver);
                 el.addEventListener('dragenter', handleProjectDragEnter);
