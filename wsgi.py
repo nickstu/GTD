@@ -105,6 +105,54 @@ def get_html():
         return f.read()
 
 
+def respond_json(start_response, status, payload, extra_headers=None):
+    headers = [("Content-type", "application/json")]
+    if extra_headers:
+        headers.extend(extra_headers)
+    start_response(status, headers)
+    return [json.dumps(payload).encode("utf-8")]
+
+
+def respond_text(start_response, status, text):
+    headers = [("Content-type", "text/plain")]
+    start_response(status, headers)
+    return [text.encode("utf-8")]
+
+
+def read_json_body(environ):
+    content_length = int(environ.get("CONTENT_LENGTH", 0))
+    body = environ["wsgi.input"].read(content_length)
+    return json.loads(body) if body else {}
+
+
+def require_auth(environ, start_response):
+    username = get_session_username(environ)
+    if not username:
+        return "", respond_json(
+            start_response, "401 Unauthorized", {"error": "Not authenticated"}
+        )
+    return username, None
+
+
+def require_admin(username, start_response):
+    users = load_users()
+    if not users.get(username, {}).get("isAdmin", False):
+        return {}, respond_json(
+            start_response, "403 Forbidden", {"error": "Admin access required"}
+        )
+    return users, None
+
+
+def require_admin_user(environ, start_response):
+    username, error_response = require_auth(environ, start_response)
+    if error_response:
+        return "", {}, error_response
+    users, error_response = require_admin(username, start_response)
+    if error_response:
+        return "", {}, error_response
+    return username, users, None
+
+
 def application(environ, start_response):
     """WSGI application entry point"""
     method = environ["REQUEST_METHOD"]
@@ -131,30 +179,19 @@ def application(environ, start_response):
             else:
                 response = {"authenticated": False}
 
-            status = "200 OK"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps(response).encode("utf-8")]
+            return respond_json(start_response, "200 OK", response)
 
         elif path == "/api/data":
-            username = get_session_username(environ)
-            if not username:
-                status = "401 Unauthorized"
-                headers = [("Content-type", "application/json")]
-                start_response(status, headers)
-                return [json.dumps({"error": "Not authenticated"}).encode("utf-8")]
+            username, error_response = require_auth(environ, start_response)
+            if error_response:
+                return error_response
 
             data = load_data(username)
-            status = "200 OK"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps(data).encode("utf-8")]
+            return respond_json(start_response, "200 OK", data)
 
     # Handle POST requests
     elif method == "POST":
-        content_length = int(environ.get("CONTENT_LENGTH", 0))
-        body = environ["wsgi.input"].read(content_length)
-        req_data = json.loads(body) if body else {}
+        req_data = read_json_body(environ)
 
         if path == "/api/login":
             username = req_data.get("username", "").strip()
@@ -218,10 +255,7 @@ def application(environ, start_response):
                 else:
                     response = {"success": False, "message": "Account does not exist"}
 
-            status = "200 OK"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps(response).encode("utf-8")]
+            return respond_json(start_response, "200 OK", response)
 
         elif path == "/api/logout":
             cookie_header = environ.get("HTTP_COOKIE", "")
@@ -232,39 +266,20 @@ def application(environ, start_response):
                     sessions.pop(session_id, None)
                     save_sessions(sessions)
 
-            status = "200 OK"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps({"success": True}).encode("utf-8")]
+            return respond_json(start_response, "200 OK", {"success": True})
 
         elif path == "/api/data":
-            username = get_session_username(environ)
-            if not username:
-                status = "401 Unauthorized"
-                headers = [("Content-type", "application/json")]
-                start_response(status, headers)
-                return [json.dumps({"error": "Not authenticated"}).encode("utf-8")]
+            username, error_response = require_auth(environ, start_response)
+            if error_response:
+                return error_response
 
             save_data(username, req_data)
-            status = "200 OK"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps({"success": True}).encode("utf-8")]
+            return respond_json(start_response, "200 OK", {"success": True})
 
         elif path == "/api/admin/create-user":
-            username = get_session_username(environ)
-            if not username:
-                status = "401 Unauthorized"
-                headers = [("Content-type", "application/json")]
-                start_response(status, headers)
-                return [json.dumps({"error": "Not authenticated"}).encode("utf-8")]
-
-            users = load_users()
-            if not users.get(username, {}).get("isAdmin", False):
-                status = "403 Forbidden"
-                headers = [("Content-type", "application/json")]
-                start_response(status, headers)
-                return [json.dumps({"error": "Admin access required"}).encode("utf-8")]
+            _, users, error_response = require_admin_user(environ, start_response)
+            if error_response:
+                return error_response
 
             new_username = req_data.get("username", "").strip()
 
@@ -284,49 +299,23 @@ def application(environ, start_response):
                     "message": f"User '{new_username}' created successfully",
                 }
 
-            status = "200 OK"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps(response).encode("utf-8")]
+            return respond_json(start_response, "200 OK", response)
 
         elif path == "/api/admin/list-users":
-            username = get_session_username(environ)
-            if not username:
-                status = "401 Unauthorized"
-                headers = [("Content-type", "application/json")]
-                start_response(status, headers)
-                return [json.dumps({"error": "Not authenticated"}).encode("utf-8")]
-
-            users = load_users()
-            if not users.get(username, {}).get("isAdmin", False):
-                status = "403 Forbidden"
-                headers = [("Content-type", "application/json")]
-                start_response(status, headers)
-                return [json.dumps({"error": "Admin access required"}).encode("utf-8")]
+            _, users, error_response = require_admin_user(environ, start_response)
+            if error_response:
+                return error_response
 
             user_list = [
                 {"username": u, "isAdmin": data.get("isAdmin", False)}
                 for u, data in users.items()
             ]
-            status = "200 OK"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps({"users": user_list}).encode("utf-8")]
+            return respond_json(start_response, "200 OK", {"users": user_list})
 
         elif path == "/api/admin/delete-user":
-            username = get_session_username(environ)
-            if not username:
-                status = "401 Unauthorized"
-                headers = [("Content-type", "application/json")]
-                start_response(status, headers)
-                return [json.dumps({"error": "Not authenticated"}).encode("utf-8")]
-
-            users = load_users()
-            if not users.get(username, {}).get("isAdmin", False):
-                status = "403 Forbidden"
-                headers = [("Content-type", "application/json")]
-                start_response(status, headers)
-                return [json.dumps({"error": "Admin access required"}).encode("utf-8")]
+            _, users, error_response = require_admin_user(environ, start_response)
+            if error_response:
+                return error_response
 
             delete_username = req_data.get("username", "").strip()
 
@@ -348,25 +337,12 @@ def application(environ, start_response):
                     "message": f"User '{delete_username}' deleted",
                 }
 
-            status = "200 OK"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps(response).encode("utf-8")]
+            return respond_json(start_response, "200 OK", response)
 
         elif path == "/api/admin/reset-password":
-            username = get_session_username(environ)
-            if not username:
-                status = "401 Unauthorized"
-                headers = [("Content-type", "application/json")]
-                start_response(status, headers)
-                return [json.dumps({"error": "Not authenticated"}).encode("utf-8")]
-
-            users = load_users()
-            if not users.get(username, {}).get("isAdmin", False):
-                status = "403 Forbidden"
-                headers = [("Content-type", "application/json")]
-                start_response(status, headers)
-                return [json.dumps({"error": "Admin access required"}).encode("utf-8")]
+            _, users, error_response = require_admin_user(environ, start_response)
+            if error_response:
+                return error_response
 
             reset_username = req_data.get("username", "").strip()
 
@@ -381,10 +357,7 @@ def application(environ, start_response):
                     "message": f"Password reset for '{reset_username}'",
                 }
 
-            status = "200 OK"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps(response).encode("utf-8")]
+            return respond_json(start_response, "200 OK", response)
 
         elif path == "/api/set-password":
             set_username = req_data.get("username", "").strip()
@@ -438,18 +411,12 @@ def application(environ, start_response):
                         ).encode("utf-8")
                     ]
 
-            status = "200 OK"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps(response).encode("utf-8")]
+            return respond_json(start_response, "200 OK", response)
 
         elif path == "/api/items":
-            username = get_session_username(environ)
-            if not username:
-                status = "401 Unauthorized"
-                headers = [("Content-type", "application/json")]
-                start_response(status, headers)
-                return [json.dumps({"error": "Not authenticated"}).encode("utf-8")]
+            username, error_response = require_auth(environ, start_response)
+            if error_response:
+                return error_response
 
             data = load_data(username)
             item = {
@@ -467,18 +434,12 @@ def application(environ, start_response):
             data["nextItemId"] += 1
             save_data(username, data)
 
-            status = "200 OK"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps(item).encode("utf-8")]
+            return respond_json(start_response, "200 OK", item)
 
         elif path == "/api/projects":
-            username = get_session_username(environ)
-            if not username:
-                status = "401 Unauthorized"
-                headers = [("Content-type", "application/json")]
-                start_response(status, headers)
-                return [json.dumps({"error": "Not authenticated"}).encode("utf-8")]
+            username, error_response = require_auth(environ, start_response)
+            if error_response:
+                return error_response
 
             data = load_data(username)
             project = {
@@ -492,35 +453,26 @@ def application(environ, start_response):
             data["nextProjectId"] += 1
             save_data(username, data)
 
-            status = "200 OK"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps(project).encode("utf-8")]
+            return respond_json(start_response, "200 OK", project)
 
     # Handle PUT requests
     elif method == "PUT":
-        username = get_session_username(environ)
-        if not username:
-            status = "401 Unauthorized"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps({"error": "Not authenticated"}).encode("utf-8")]
+        username, error_response = require_auth(environ, start_response)
+        if error_response:
+            return error_response
 
-        content_length = int(environ.get("CONTENT_LENGTH", 0))
-        body = environ["wsgi.input"].read(content_length)
-        updates = json.loads(body) if body else {}
+        updates = read_json_body(environ)
 
         data = load_data(username)
 
         # Batch update endpoint for multiple items
         if path == "/api/items/batch":
             if not isinstance(updates, list):
-                status = "400 Bad Request"
-                headers = [("Content-type", "application/json")]
-                start_response(status, headers)
-                return [
-                    json.dumps({"error": "Expected array of updates"}).encode("utf-8")
-                ]
+                return respond_json(
+                    start_response,
+                    "400 Bad Request",
+                    {"error": "Expected array of updates"},
+                )
 
             updated_count = 0
             for update in updates:
@@ -536,20 +488,16 @@ def application(environ, start_response):
                         break
 
             save_data(username, data)
-            status = "200 OK"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps({"updated": updated_count}).encode("utf-8")]
+            return respond_json(start_response, "200 OK", {"updated": updated_count})
 
         # Batch update endpoint for multiple projects
         if path == "/api/projects/batch":
             if not isinstance(updates, list):
-                status = "400 Bad Request"
-                headers = [("Content-type", "application/json")]
-                start_response(status, headers)
-                return [
-                    json.dumps({"error": "Expected array of updates"}).encode("utf-8")
-                ]
+                return respond_json(
+                    start_response,
+                    "400 Bad Request",
+                    {"error": "Expected array of updates"},
+                )
 
             updated_count = 0
             for update in updates:
@@ -565,17 +513,11 @@ def application(environ, start_response):
                         break
 
             save_data(username, data)
-            status = "200 OK"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps({"updated": updated_count}).encode("utf-8")]
+            return respond_json(start_response, "200 OK", {"updated": updated_count})
 
         path_parts = path.split("/")
         if len(path_parts) < 4:
-            status = "400 Bad Request"
-            headers = [("Content-type", "text/plain")]
-            start_response(status, headers)
-            return [b"Bad Request"]
+            return respond_text(start_response, "400 Bad Request", "Bad Request")
 
         item_id = int(path_parts[3])
 
@@ -584,40 +526,25 @@ def application(environ, start_response):
                 if item["id"] == item_id:
                     data["items"][i].update(updates)
                     save_data(username, data)
-                    status = "200 OK"
-                    headers = [("Content-type", "application/json")]
-                    start_response(status, headers)
-                    return [json.dumps(data["items"][i]).encode("utf-8")]
+                    return respond_json(start_response, "200 OK", data["items"][i])
         elif path_parts[2] == "projects":
             for i, project in enumerate(data["projects"]):
                 if project["id"] == item_id:
                     data["projects"][i].update(updates)
                     save_data(username, data)
-                    status = "200 OK"
-                    headers = [("Content-type", "application/json")]
-                    start_response(status, headers)
-                    return [json.dumps(data["projects"][i]).encode("utf-8")]
+                    return respond_json(start_response, "200 OK", data["projects"][i])
 
-        status = "404 Not Found"
-        headers = [("Content-type", "text/plain")]
-        start_response(status, headers)
-        return [b"Not Found"]
+        return respond_text(start_response, "404 Not Found", "Not Found")
 
     # Handle DELETE requests
     elif method == "DELETE":
         path_parts = path.split("/")
         if len(path_parts) < 4:
-            status = "400 Bad Request"
-            headers = [("Content-type", "text/plain")]
-            start_response(status, headers)
-            return [b"Bad Request"]
+            return respond_text(start_response, "400 Bad Request", "Bad Request")
 
-        username = get_session_username(environ)
-        if not username:
-            status = "401 Unauthorized"
-            headers = [("Content-type", "application/json")]
-            start_response(status, headers)
-            return [json.dumps({"error": "Not authenticated"}).encode("utf-8")]
+        username, error_response = require_auth(environ, start_response)
+        if error_response:
+            return error_response
 
         data = load_data(username)
         item_id = int(path_parts[3])
@@ -642,16 +569,10 @@ def application(environ, start_response):
             start_response(status, headers)
             return [b""]
 
-        status = "404 Not Found"
-        headers = [("Content-type", "text/plain")]
-        start_response(status, headers)
-        return [b"Not Found"]
+        return respond_text(start_response, "404 Not Found", "Not Found")
 
     # 404 for unknown routes
-    status = "404 Not Found"
-    headers = [("Content-type", "text/plain")]
-    start_response(status, headers)
-    return [b"Not Found"]
+    return respond_text(start_response, "404 Not Found", "Not Found")
 
 
 if __name__ == "__main__":
