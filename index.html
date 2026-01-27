@@ -6,10 +6,79 @@
     <title>GTD Dashboard</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --bg: #1a1d23;
+            --bg-subtle: #1a1d24;
+            --panel: #242831;
+            --panel-alt: #2a2f3a;
+            --panel-hover: #4a4f5b;
+            --border: #3a3f4b;
+            --border-strong: #5a6170;
+            --text: #e4e6eb;
+            --muted: #adb5bd;
+            --muted-2: #6c757d;
+            --neutral: #6c757d;
+            --neutral-hover: #5c636a;
+            --accent: #0d6efd;
+            --accent-hover: #0b5ed7;
+            --accent-glow: rgba(13, 110, 253, 0.6);
+            --accent-glow-soft: rgba(13, 110, 253, 0.3);
+            --accent-surface: rgba(13, 110, 253, 0.05);
+            --accent-surface-strong: rgba(13, 110, 253, 0.08);
+            --success: #28a745;
+            --success-hover: #218838;
+            --warning: #fd7e14;
+            --warning-hover: #e36c08;
+            --highlight: #ff8c00;
+            --danger: #dc3545;
+            --danger-hover: #bb2d3b;
+            --drag-hover: #3a4555;
+            --drag-outline: #2a3545;
+            --overlay: rgba(0,0,0,0.8);
+            --overlay-soft: rgba(0,0,0,0.5);
+            --shadow: rgba(0,0,0,0.5);
+            --shadow-soft: rgba(0,0,0,0.3);
+            --shadow-strong: rgba(0,0,0,0.4);
+        }
+        body[data-theme="paper"] {
+            --bg: #f5f2ec;
+            --bg-subtle: #ede6db;
+            --panel: #ffffff;
+            --panel-alt: #efe7dc;
+            --panel-hover: #e4dbcd;
+            --border: #d6cec2;
+            --border-strong: #bfb6a7;
+            --text: #2a2a2a;
+            --muted: #6f6a61;
+            --muted-2: #8a8377;
+            --neutral: #8a8377;
+            --neutral-hover: #787063;
+            --accent: #1b6f8a;
+            --accent-hover: #165d73;
+            --accent-glow: rgba(27, 111, 138, 0.45);
+            --accent-glow-soft: rgba(27, 111, 138, 0.25);
+            --accent-surface: rgba(27, 111, 138, 0.08);
+            --accent-surface-strong: rgba(27, 111, 138, 0.14);
+            --success: #3b8d4a;
+            --success-hover: #2f703b;
+            --warning: #b86a1d;
+            --warning-hover: #9a5718;
+            --highlight: #a0522d;
+            --danger: #b6423a;
+            --danger-hover: #92352f;
+            --drag-hover: #d9d0c3;
+            --drag-outline: #cfc5b7;
+            --overlay: rgba(30, 24, 18, 0.55);
+            --overlay-soft: rgba(30, 24, 18, 0.35);
+            --shadow: rgba(25, 20, 14, 0.2);
+            --shadow-soft: rgba(25, 20, 14, 0.15);
+            --shadow-strong: rgba(25, 20, 14, 0.25);
+        }
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; 
-            background: #1a1d23; 
-            color: #e4e6eb;
+            font-family: var(--font-ui);
+            background: var(--bg); 
+            color: var(--text);
             height: 100vh;
             overflow: hidden;
         }
@@ -21,7 +90,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.8);
+            background: var(--overlay);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -29,10 +98,10 @@
         }
         
         .login-box {
-            background: #242831;
+            background: var(--panel);
             padding: 40px;
             border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 40px var(--shadow);
             width: 400px;
             max-width: 90%;
         }
@@ -55,16 +124,16 @@
         .login-input {
             width: 100%;
             padding: 12px;
-            border: 1px solid #3a3f4b;
+            border: 1px solid var(--border);
             border-radius: 6px;
-            background: #1a1d23;
-            color: #e4e6eb;
+            background: var(--bg);
+            color: var(--text);
             font-size: 14px;
         }
         
         .login-btn {
             padding: 12px;
-            background: #0d6efd;
+            background: var(--accent);
             color: white;
             border: none;
             border-radius: 6px;
@@ -74,24 +143,24 @@
         }
         
         .login-btn:hover {
-            background: #0b5ed7;
+            background: var(--accent-hover);
         }
         
         .login-error {
-            color: #dc3545;
+            color: var(--danger);
             font-size: 13px;
             text-align: center;
         }
         
         .login-info {
-            color: #adb5bd;
+            color: var(--muted);
             font-size: 12px;
             text-align: center;
             margin-top: 12px;
         }
         
         .admin-btn {
-            background: #6c757d;
+            background: var(--neutral);
             color: white;
             border: none;
             padding: 6px 12px;
@@ -102,7 +171,7 @@
         }
         
         .admin-btn:hover {
-            background: #5c636a;
+            background: var(--neutral-hover);
         }
         
         #adminPanel {
@@ -111,7 +180,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.8);
+            background: var(--overlay);
             display: none;
             align-items: center;
             justify-content: center;
@@ -123,7 +192,7 @@
         }
         
         .admin-box {
-            background: #242831;
+            background: var(--panel);
             padding: 30px;
             border-radius: 12px;
             width: 600px;
@@ -145,11 +214,11 @@
         .admin-section h3 {
             font-size: 16px;
             margin-bottom: 12px;
-            color: #adb5bd;
+            color: var(--muted);
         }
         
         .user-list {
-            background: #1a1d23;
+            background: var(--bg);
             border-radius: 6px;
             padding: 12px;
             margin-bottom: 16px;
@@ -160,7 +229,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 8px;
-            border-bottom: 1px solid #3a3f4b;
+            border-bottom: 1px solid var(--border);
         }
         
         .user-item:last-child {
@@ -168,7 +237,7 @@
         }
         
         .user-badge {
-            background: #0d6efd;
+            background: var(--accent);
             color: white;
             padding: 2px 8px;
             border-radius: 3px;
@@ -177,7 +246,7 @@
         }
         
         .delete-user-btn {
-            background: #dc3545;
+            background: var(--danger);
             color: white;
             border: none;
             padding: 4px 8px;
@@ -187,7 +256,7 @@
         }
         
         .delete-user-btn:hover {
-            background: #bb2d3b;
+            background: var(--danger-hover);
         }
         
         .create-user-form {
@@ -197,7 +266,7 @@
         }
         
         .admin-close-btn {
-            background: #6c757d;
+            background: var(--neutral);
             color: white;
             border: none;
             padding: 10px 20px;
@@ -209,7 +278,7 @@
         }
         
         .admin-close-btn:hover {
-            background: #5c636a;
+            background: var(--neutral-hover);
         }
         
         #appContent {
@@ -254,9 +323,9 @@
         }
         
         .projects-sidebar {
-            background: #1a1d24;
+            background: var(--bg-subtle);
             overflow-y: scroll;
-            border-right: 1px solid #3a3f4b;
+            border-right: 1px solid var(--border);
         }
         
         .projects-sidebar::-webkit-scrollbar {
@@ -264,17 +333,17 @@
         }
         
         .projects-sidebar::-webkit-scrollbar-track {
-            background: #1a1d24;
+            background: var(--bg-subtle);
             border-radius: 4px;
         }
         
         .projects-sidebar::-webkit-scrollbar-thumb {
-            background: #3a3f4b;
+            background: var(--border);
             border-radius: 4px;
         }
         
         .projects-sidebar::-webkit-scrollbar-thumb:hover {
-            background: #4a4f5b;
+            background: var(--panel-hover);
         }
         
         .projects-detail {
@@ -287,23 +356,23 @@
         }
         
         .projects-detail::-webkit-scrollbar-track {
-            background: #1a1d24;
+            background: var(--bg-subtle);
             border-radius: 4px;
         }
         
         .projects-detail::-webkit-scrollbar-thumb {
-            background: #3a3f4b;
+            background: var(--border);
             border-radius: 4px;
         }
         
         .projects-detail::-webkit-scrollbar-thumb:hover {
-            background: #4a4f5b;
+            background: var(--panel-hover);
         }
         
         .project-list-item {
             padding: 12px 16px;
             cursor: pointer;
-            border-bottom: 1px solid #2a2f3a;
+            border-bottom: 1px solid var(--panel-alt);
             border-left: 3px solid transparent;
             display: flex;
             align-items: center;
@@ -313,17 +382,17 @@
         }
         
         .project-list-item:hover {
-            background: #242831;
+            background: var(--panel);
         }
         
         .project-list-item.active {
-            background: #2a2f3a;
-            border-left-color: #0d6efd;
+            background: var(--panel-alt);
+            border-left-color: var(--accent);
         }
         
         .project-chevron {
             font-size: 10px;
-            color: #6c757d;
+            color: var(--muted-2);
             width: 12px;
             text-align: center;
         }
@@ -338,9 +407,9 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: #0d6efd;
+            background: var(--accent);
             border-radius: 2px;
-            box-shadow: 0 0 8px rgba(13, 110, 253, 0.6);
+            box-shadow: 0 0 8px var(--accent-glow);
             animation: pulse 0.6s ease-in-out infinite;
             pointer-events: none;
             z-index: 100;
@@ -363,9 +432,9 @@
         }
         
         .pane {
-            background: #242831;
+            background: var(--panel);
             border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            box-shadow: 0 1px 3px var(--shadow-soft);
             display: flex;
             flex-direction: column;
             height: 100%;
@@ -375,8 +444,8 @@
         
         .pane-header {
             padding: 12px 16px;
-            border-bottom: 1px solid #3a3f4b;
-            background: #2a2f3a;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel-alt);
             display: flex;
             align-items: center;
             gap: 8px;
@@ -396,22 +465,22 @@
         }
         
         .pane-content::-webkit-scrollbar-track {
-            background: #1a1d24;
+            background: var(--bg-subtle);
             border-radius: 4px;
         }
         
         .pane-content::-webkit-scrollbar-thumb {
-            background: #3a3f4b;
+            background: var(--border);
             border-radius: 4px;
         }
         
         .pane-content::-webkit-scrollbar-thumb:hover {
-            background: #4a4f5b;
+            background: var(--panel-hover);
         }
         
         .item {
-            background: #2a2f3a;
-            border: 1px solid #3a3f4b;
+            background: var(--panel-alt);
+            border: 1px solid var(--border);
             border-radius: 6px;
             padding: 10px;
             margin-bottom: 8px;
@@ -421,8 +490,8 @@
         }
         
         .item:hover {
-            border-color: #5a6170;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            border-color: var(--border-strong);
+            box-shadow: 0 2px 4px var(--shadow-soft);
         }
         
         .item.dragging {
@@ -430,14 +499,14 @@
         }
         
         .drop-target-hover {
-            background: #3a4555 !important;
-            border-color: #0d6efd !important;
-            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.3) !important;
+            background: var(--drag-hover) !important;
+            border-color: var(--accent) !important;
+            box-shadow: 0 0 0 2px var(--accent-glow-soft) !important;
         }
         
         .drop-target-project {
-            background: #2a3545 !important;
-            outline: 2px dashed #0d6efd !important;
+            background: var(--drag-outline) !important;
+            outline: 2px dashed var(--accent) !important;
             outline-offset: -2px;
         }
         
@@ -446,9 +515,9 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: #0d6efd;
+            background: var(--accent);
             border-radius: 2px;
-            box-shadow: 0 0 8px rgba(13, 110, 253, 0.6);
+            box-shadow: 0 0 8px var(--accent-glow);
             animation: pulse 0.6s ease-in-out infinite;
             pointer-events: none;
             z-index: 100;
@@ -460,15 +529,15 @@
         }
         
         .pane-content.drop-zone-active {
-            background: rgba(13, 110, 253, 0.05);
-            outline: 2px dashed #0d6efd;
+            background: var(--accent-surface);
+            outline: 2px dashed var(--accent);
             outline-offset: -2px;
             border-radius: 8px;
         }
         
         .project-pane.drop-zone-active {
-            background: rgba(13, 110, 253, 0.08) !important;
-            outline: 2px solid #0d6efd !important;
+            background: var(--accent-surface-strong) !important;
+            outline: 2px solid var(--accent) !important;
             outline-offset: -2px;
         }
         
@@ -480,7 +549,7 @@
         
         .item.done .item-title {
             text-decoration: line-through;
-            color: #6c757d;
+            color: var(--muted-2);
             opacity: 0.6;
         }
         
@@ -488,33 +557,33 @@
             display: flex;
             gap: 8px;
             font-size: 11px;
-            color: #6c757d;
+            color: var(--muted-2);
             flex-wrap: wrap;
         }
         
         .item-date {
-            color: #fd7e14;
+            color: var(--warning);
         }
         
         .item-project {
-            color: #0d6efd;
+            color: var(--accent);
         }
         
         .quick-capture {
             padding: 12px;
-            background: #2a2f3a;
-            border-bottom: 1px solid #3a3f4b;
+            background: var(--panel-alt);
+            border-bottom: 1px solid var(--border);
         }
         
         .quick-capture input {
             width: 100%;
             padding: 8px;
-            border: 1px solid #3a3f4b;
+            border: 1px solid var(--border);
             border-radius: 4px;
             margin-bottom: 6px;
             font-size: 13px;
-            background: #1a1d23;
-            color: #e4e6eb;
+            background: var(--bg);
+            color: var(--text);
         }
         
         .quick-capture-row {
@@ -533,7 +602,7 @@
         .quick-capture button {
             width: 100%;
             padding: 8px;
-            background: #28a745;
+            background: var(--success);
             color: white;
             border: none;
             border-radius: 4px;
@@ -543,7 +612,7 @@
         }
         
         .quick-capture button:hover {
-            background: #218838;
+            background: var(--success-hover);
         }
         
         .project-pane {
@@ -551,8 +620,8 @@
             min-width: 300px;
             max-width: 300px;
             flex-shrink: 0;
-            background: #2a2f3a;
-            border: 1px solid #3a3f4b;
+            background: var(--panel-alt);
+            border: 1px solid var(--border);
             border-radius: 8px;
             padding: 12px;
             height: 100%;
@@ -572,9 +641,9 @@
             top: 0;
             bottom: 0;
             width: 4px;
-            background: #0d6efd;
+            background: var(--accent);
             border-radius: 2px;
-            box-shadow: 0 0 8px rgba(13, 110, 253, 0.6);
+            box-shadow: 0 0 8px var(--accent-glow);
             animation: pulse 0.6s ease-in-out infinite;
             pointer-events: none;
             z-index: 100;
@@ -591,7 +660,7 @@
         .project-header {
             font-size: 14px;
             font-weight: 600;
-            color: #6c757d;
+            color: var(--muted-2);
             margin-bottom: 12px;
             flex-shrink: 0;
             display: flex;
@@ -602,7 +671,7 @@
         .drag-handle {
             cursor: move;
             font-size: 16px;
-            color: #6c757d;
+            color: var(--muted-2);
             opacity: 0.6;
             user-select: none;
             line-height: 1;
@@ -624,32 +693,32 @@
         }
         
         .project-items::-webkit-scrollbar-track {
-            background: #1a1d24;
+            background: var(--bg-subtle);
             border-radius: 4px;
         }
         
         .project-items::-webkit-scrollbar-thumb {
-            background: #3a3f4b;
+            background: var(--border);
             border-radius: 4px;
         }
         
         .project-items::-webkit-scrollbar-thumb:hover {
-            background: #4a4f5b;
+            background: var(--panel-hover);
         }
         
         .project-header:hover {
-            color: #0d6efd;
+            color: var(--accent);
         }
         
         .empty-state {
             text-align: center;
             padding: 40px 20px;
-            color: #adb5bd;
+            color: var(--muted);
             font-size: 12px;
         }
         
         .btn-new-project {
-            background: #0d6efd;
+            background: var(--accent);
             color: white;
             border: none;
             padding: 6px 12px;
@@ -661,7 +730,7 @@
         }
         
         .btn-new-project:hover {
-            background: #0b5ed7;
+            background: var(--accent-hover);
         }
         
         .modal {
@@ -671,7 +740,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: var(--overlay-soft);
             align-items: center;
             justify-content: center;
             z-index: 1000;
@@ -682,7 +751,7 @@
         }
         
         .modal-content {
-            background: #242831;
+            background: var(--panel);
             padding: 24px;
             border-radius: 12px;
             max-width: 500px;
@@ -714,11 +783,11 @@
         .form-control {
             width: 100%;
             padding: 10px;
-            border: 1px solid #3a3f4b;
+            border: 1px solid var(--border);
             border-radius: 6px;
             font-size: 14px;
-            background: #1a1d23;
-            color: #e4e6eb;
+            background: var(--bg);
+            color: var(--text);
         }
         
         textarea.form-control {
@@ -743,30 +812,39 @@
         }
         
         .btn-primary {
-            background: #0d6efd;
+            background: var(--accent);
             color: white;
         }
         
         .btn-primary:hover {
-            background: #0b5ed7;
+            background: var(--accent-hover);
         }
         
         .btn-secondary {
-            background: #6c757d;
+            background: var(--neutral);
             color: white;
         }
         
         .btn-secondary:hover {
-            background: #5c636a;
+            background: var(--neutral-hover);
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: var(--warning-hover);
         }
         
         .btn-danger {
-            background: #dc3545;
+            background: var(--danger);
             color: white;
         }
         
         .btn-danger:hover {
-            background: #bb2d3b;
+            background: var(--danger-hover);
         }
         
         .checkbox-wrapper {
@@ -779,7 +857,7 @@
         .checkbox {
             width: 18px;
             height: 18px;
-            border: 2px solid #5a6170;
+            border: 2px solid var(--border-strong);
             border-radius: 4px;
             cursor: pointer;
             display: flex;
@@ -789,8 +867,8 @@
         }
         
         .checkbox.done {
-            background: #0d6efd;
-            border-color: #0d6efd;
+            background: var(--accent);
+            border-color: var(--accent);
         }
         
         .checkbox.done::after {
@@ -816,26 +894,26 @@
         }
         
         ::-webkit-scrollbar-track {
-            background: #1a1d23;
+            background: var(--bg);
             border-radius: 4px;
         }
         
         ::-webkit-scrollbar-thumb {
-            background: #5a6170;
+            background: var(--border-strong);
             border-radius: 4px;
         }
         
         ::-webkit-scrollbar-thumb:hover {
-            background: #6c757d;
+            background: var(--muted-2);
         }
         
         /* Context Menu Styles */
         #contextMenu {
             position: fixed;
-            background: #242831;
-            border: 1px solid #3a3f4b;
+            background: var(--panel);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 20px var(--shadow-strong);
             z-index: 3000;
             min-width: 180px;
             display: none;
@@ -849,8 +927,8 @@
             padding: 10px 16px;
             cursor: pointer;
             font-size: 14px;
-            color: #e4e6eb;
-            border-bottom: 1px solid #3a3f4b;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
         }
         
         .context-menu-item:last-child {
@@ -858,7 +936,7 @@
         }
         
         .context-menu-item:hover {
-            background: #2a2f3a;
+            background: var(--panel-alt);
         }
         
         .context-menu-item:first-child {
@@ -876,7 +954,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.8);
+            background: var(--overlay);
             display: none;
             align-items: center;
             justify-content: center;
@@ -888,7 +966,7 @@
         }
         
         .project-select-box {
-            background: #242831;
+            background: var(--panel);
             padding: 30px;
             border-radius: 12px;
             width: 400px;
@@ -912,15 +990,15 @@
         
         .project-select-item {
             padding: 12px;
-            background: #1a1d23;
+            background: var(--bg);
             border-radius: 6px;
             cursor: pointer;
             border: 2px solid transparent;
         }
         
         .project-select-item:hover {
-            background: #2a2f3a;
-            border-color: #0d6efd;
+            background: var(--panel-alt);
+            border-color: var(--accent);
         }
         
         .project-select-buttons {
@@ -986,7 +1064,7 @@
             
             .projects-sidebar {
                 border-right: none;
-                border-bottom: 1px solid #3a3f4b;
+                border-bottom: 1px solid var(--border);
                 max-height: 200px;
             }
             
@@ -1054,24 +1132,24 @@
     <!-- Login Modal -->
     <div id="loginModal">
         <div class="login-box">
-            <h1 class="login-title">GTD Login</h1>
+            <h1 class="login-title" data-i18n="login.title">GTD Login</h1>
             <form class="login-form" onsubmit="login(event)">
-                <input type="text" id="loginUsername" class="login-input" placeholder="Username" required autocomplete="username">
-                <input type="password" id="loginPassword" class="login-input" placeholder="Password" autocomplete="current-password">
-                <button type="submit" class="login-btn">Login</button>
+                <input type="text" id="loginUsername" class="login-input" placeholder="Username" data-i18n-placeholder="login.username" required autocomplete="username">
+                <input type="password" id="loginPassword" class="login-input" placeholder="Password" data-i18n-placeholder="login.password" autocomplete="current-password">
+                <button type="submit" class="login-btn" data-i18n="login.submit">Login</button>
                 <div id="loginError" class="login-error"></div>
             </form>
         </div>
     </div>
     
     <!-- Password Setup Modal -->
-    <div id="passwordSetupModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 2000;">
-        <div class="login-box">
-            <h1 class="login-title">Set Your Password</h1>
-            <form class="login-form" onsubmit="setPassword(event)">
-                <input type="password" id="setupPassword" class="login-input" placeholder="Choose Password" required autocomplete="new-password">
-                <input type="password" id="setupPasswordConfirm" class="login-input" placeholder="Confirm Password" required autocomplete="new-password">
-                <button type="submit" class="login-btn">Set Password</button>
+        <div id="passwordSetupModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--overlay); display: none; align-items: center; justify-content: center; z-index: 2000;">
+            <div class="login-box">
+                <h1 class="login-title" data-i18n="passwordSetup.title">Set Your Password</h1>
+                <form class="login-form" onsubmit="setPassword(event)">
+                    <input type="password" id="setupPassword" class="login-input" placeholder="Choose Password" data-i18n-placeholder="passwordSetup.password" required autocomplete="new-password">
+                    <input type="password" id="setupPasswordConfirm" class="login-input" placeholder="Confirm Password" data-i18n-placeholder="passwordSetup.confirm" required autocomplete="new-password">
+                    <button type="submit" class="login-btn" data-i18n="passwordSetup.submit">Set Password</button>
                 <div id="setupError" class="login-error"></div>
             </form>
         </div>
@@ -1081,54 +1159,54 @@
         <!-- Top Row: Inbox, Calendar, Next Actions, Account -->
         <div class="grid-row">
             <div class="pane" data-status="inbox">
-                <div class="pane-header">📥 Inbox</div>
+                <div class="pane-header" data-i18n="pane.inbox">📥 Inbox</div>
                 <div class="quick-capture">
-                    <input type="text" id="quickTitle" placeholder="Quick capture...">
+                    <input type="text" id="quickTitle" placeholder="Quick capture..." data-i18n-placeholder="quickCapture.placeholder">
                     <div class="quick-capture-row">
                         <input type="date" id="quickDate">
                         <input type="time" id="quickTime">
                         <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;">
                             <input type="checkbox" id="quickDeadline" style="cursor: pointer;">
-                            <span>Deadline</span>
+                            <span data-i18n="quickCapture.deadline">Deadline</span>
                         </label>
                     </div>
-                    <button onclick="quickCapture()">Add</button>
+                    <button onclick="quickCapture()" data-i18n="quickCapture.add">Add</button>
                 </div>
                 <div class="pane-content" id="inbox-content"></div>
             </div>
             
             <div class="pane">
-                <div class="pane-header">📅 Calendar</div>
+                <div class="pane-header" data-i18n="pane.calendar">📅 Calendar</div>
                 <div class="pane-content" id="calendar-content"></div>
             </div>
             
             <div class="pane">
-                <div class="pane-header">⚡ Next Actions</div>
+                <div class="pane-header" data-i18n="pane.nextActions">⚡ Next Actions</div>
                 <div class="pane-content" id="next-content"></div>
             </div>
             
             <div class="pane">
-                <div class="pane-header">👤 Account</div>
+                <div class="pane-header" data-i18n="pane.account">👤 Account</div>
                 <div class="pane-content" style="padding: 16px;">
                     <div style="margin-bottom: 20px;">
-                        <div style="font-size: 12px; color: #adb5bd; margin-bottom: 4px;">Logged in as</div>
+                        <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;" data-i18n="account.loggedInAs">Logged in as</div>
                         <div style="font-weight: 600; font-size: 14px;" id="currentUser"></div>
                     </div>
                     
                     <div style="margin-bottom: 20px;">
-                        <div style="font-size: 12px; color: #adb5bd; margin-bottom: 8px;">Stats</div>
+                        <div style="font-size: 12px; color: var(--muted); margin-bottom: 8px;" data-i18n="account.stats">Stats</div>
                         <div style="font-size: 13px; line-height: 1.8;">
-                            <div>📊 Total Items: <span id="statsItems" style="font-weight: 600;">0</span></div>
-                            <div>✅ Done: <span id="statsDone" style="font-weight: 600;">0</span></div>
-                            <div>📁 Projects: <span id="statsProjects" style="font-weight: 600;">0</span></div>
-                            <div>⏰ Scheduled: <span id="statsScheduled" style="font-weight: 600;">0</span></div>
+                            <div>📊 <span data-i18n="stats.totalItemsLabel">Total Items</span>: <span id="statsItems" style="font-weight: 600;">0</span></div>
+                            <div>✅ <span data-i18n="stats.doneLabel">Done</span>: <span id="statsDone" style="font-weight: 600;">0</span></div>
+                            <div>📁 <span data-i18n="stats.projectsLabel">Projects</span>: <span id="statsProjects" style="font-weight: 600;">0</span></div>
+                            <div>⏰ <span data-i18n="stats.scheduledLabel">Scheduled</span>: <span id="statsScheduled" style="font-weight: 600;">0</span></div>
                         </div>
                     </div>
                     
                     <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <button id="adminBtn" class="btn btn-secondary" onclick="showAdminPanel()" style="display:none; width: 100%; padding: 8px;">Admin Panel</button>
-                        <button class="btn btn-danger" onclick="logout()" style="width: 100%; padding: 8px;">Logout</button>
-                        <button class="btn btn-secondary" onclick="deleteAllDoneItems()" style="width: 100%; padding: 8px; background: #6c757d;">Delete Done Items</button>
+                        <button id="adminBtn" class="btn btn-secondary" onclick="showAdminPanel()" style="display:none; width: 100%; padding: 8px;" data-i18n="account.adminPanel">Admin Panel</button>
+                        <button class="btn btn-danger" onclick="logout()" style="width: 100%; padding: 8px;" data-i18n="account.logout">Logout</button>
+                        <button class="btn btn-secondary" onclick="deleteAllDoneItems()" style="width: 100%; padding: 8px;" data-i18n="account.deleteDone">Delete Done Items</button>
                     </div>
                 </div>
             </div>
@@ -1139,25 +1217,25 @@
             <div class="projects-wrapper">
                 <div class="pane" style="height: 100%;">
                     <div class="pane-header">
-                        🗂️ Projects
-                        <button class="btn-new-project" onclick="newProject()">+ New Project</button>
+                        <span data-i18n="pane.projects">🗂️ Projects</span>
+                        <button class="btn-new-project" onclick="newProject()" data-i18n="projects.new">+ New Project</button>
                     </div>
                     <div class="projects-container">
                         <div class="projects-sidebar" id="projects-list"></div>
                         <div class="projects-detail" id="projects-detail">
-                            <div class="empty-state">Select a project to view its items</div>
+                            <div class="empty-state" data-i18n="projects.selectHint">Select a project to view its items</div>
                         </div>
                     </div>
                 </div>
             </div>
             
             <div class="pane" data-status="someday">
-                <div class="pane-header">💭 Someday</div>
+                <div class="pane-header" data-i18n="pane.someday">💭 Someday</div>
                 <div class="pane-content" id="someday-content"></div>
             </div>
             
             <div class="pane">
-                <div class="pane-header">⏰ Time</div>
+                <div class="pane-header" data-i18n="pane.time">⏰ Time</div>
                 <div class="pane-content" id="time-content"></div>
             </div>
         </div>
@@ -1166,24 +1244,24 @@
     <!-- Admin Panel -->
     <div id="adminPanel" onclick="if(event.target === this) closeAdminPanel()">
         <div class="admin-box">
-            <h2 class="admin-title">Admin Panel</h2>
+            <h2 class="admin-title" data-i18n="admin.title">Admin Panel</h2>
             
             <div class="admin-section">
-                <h3>Users</h3>
+                <h3 data-i18n="admin.users">Users</h3>
                 <div id="userList" class="user-list"></div>
             </div>
             
             <div class="admin-section">
-                <h3>Create New User</h3>
+                <h3 data-i18n="admin.createUser">Create New User</h3>
                 <form class="create-user-form" onsubmit="createUser(event)">
-                    <input type="text" id="newUsername" class="form-control" placeholder="Username" required>
-                    <button type="submit" class="btn btn-primary">Create User</button>
+                    <input type="text" id="newUsername" class="form-control" placeholder="Username" data-i18n-placeholder="admin.username" required>
+                    <button type="submit" class="btn btn-primary" data-i18n="admin.create">Create User</button>
                     <div id="createUserError" class="login-error"></div>
                 </form>
-                <div class="login-info" style="margin-top: 8px;">New users will be prompted to set their password on first login</div>
+                <div class="login-info" style="margin-top: 8px;" data-i18n="admin.passwordHint">New users will be prompted to set their password on first login</div>
             </div>
             
-            <button class="admin-close-btn" onclick="closeAdminPanel()">Close</button>
+            <button class="admin-close-btn" onclick="closeAdminPanel()" data-i18n="common.close">Close</button>
         </div>
     </div>
 
@@ -1191,58 +1269,58 @@
     <div id="itemModal" class="modal" onclick="if(event.target === this) closeItemModal()">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title">Edit Item</h2>
+                <h2 class="modal-title" data-i18n="item.editTitle">Edit Item</h2>
             </div>
             <div class="form-group">
-                <label class="form-label">Title</label>
+                <label class="form-label" data-i18n="item.title">Title</label>
                 <input type="text" id="editTitle" class="form-control">
             </div>
             <div class="form-group">
-                <label class="form-label">Notes</label>
+                <label class="form-label" data-i18n="item.notes">Notes</label>
                 <textarea id="editNotes" class="form-control"></textarea>
             </div>
             <div class="form-group">
-                <label class="form-label">Due Date</label>
+                <label class="form-label" data-i18n="item.dueDate">Due Date</label>
                 <input type="date" id="editDate" class="form-control">
             </div>
             <div class="form-group">
-                <label class="form-label">Start Time</label>
+                <label class="form-label" data-i18n="item.startTime">Start Time</label>
                 <input type="time" id="editTime" class="form-control">
             </div>
             <div class="form-group">
                 <label class="form-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                     <input type="checkbox" id="editDeadline" style="cursor: pointer;">
-                    <span>Deadline</span>
+                    <span data-i18n="item.deadline">Deadline</span>
                 </label>
             </div>
             <div class="form-group">
-                <label class="form-label">Project</label>
+                <label class="form-label" data-i18n="item.project">Project</label>
                 <select id="editProject" class="form-control">
-                    <option value="">None</option>
+                    <option value="" data-i18n="item.none">None</option>
                 </select>
             </div>
             <div class="form-actions">
-                <button class="btn btn-danger" onclick="deleteItem()">Delete</button>
-                <button class="btn btn-secondary" onclick="closeItemModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveItem()">Save</button>
+                <button class="btn btn-danger" onclick="deleteItem()" data-i18n="common.delete">Delete</button>
+                <button class="btn btn-secondary" onclick="closeItemModal()" data-i18n="common.cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="saveItem()" data-i18n="common.save">Save</button>
             </div>
         </div>
     </div>
     
     <!-- Context Menu -->
-    <div id="contextMenu">
-        <div class="context-menu-item" data-action="move-inbox">📥 Move to Inbox</div>
-        <div class="context-menu-item" data-action="move-someday">💭 Move to Someday</div>
-        <div class="context-menu-item" data-action="move-project">📁 Move to Project</div>
+        <div id="contextMenu">
+            <div class="context-menu-item" data-action="move-inbox" data-i18n="context.moveInbox">📥 Move to Inbox</div>
+            <div class="context-menu-item" data-action="move-someday" data-i18n="context.moveSomeday">💭 Move to Someday</div>
+            <div class="context-menu-item" data-action="move-project" data-i18n="context.moveProject">📁 Move to Project</div>
     </div>
     
     <!-- Project Selection Modal -->
     <div id="projectSelectModal" onclick="if(event.target === this) closeProjectSelectModal()">
         <div class="project-select-box">
-            <div class="project-select-title">Select Project</div>
+            <div class="project-select-title" data-i18n="projects.select">Select Project</div>
             <div class="project-select-list" id="projectSelectList"></div>
             <div class="project-select-buttons">
-                <button class="btn btn-secondary" onclick="closeProjectSelectModal()">Cancel</button>
+                <button class="btn btn-secondary" onclick="closeProjectSelectModal()" data-i18n="common.cancel">Cancel</button>
             </div>
         </div>
     </div>
@@ -1254,17 +1332,17 @@
                 <h2 class="modal-title" id="projectModalTitle">New Project</h2>
             </div>
             <div class="form-group">
-                <label class="form-label">Name</label>
+                <label class="form-label" data-i18n="projects.name">Name</label>
                 <input type="text" id="projectName" class="form-control">
             </div>
             <div class="form-group">
-                <label class="form-label">Desired Outcome</label>
+                <label class="form-label" data-i18n="projects.outcome">Desired Outcome</label>
                 <textarea id="projectOutcome" class="form-control"></textarea>
             </div>
             <div class="form-actions">
-                <button class="btn btn-danger" id="deleteProjectBtn" onclick="deleteProject()" style="display:none;">Delete</button>
-                <button class="btn btn-secondary" onclick="closeProjectModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveProject()">Save</button>
+                <button class="btn btn-danger" id="deleteProjectBtn" onclick="deleteProject()" style="display:none;" data-i18n="common.delete">Delete</button>
+                <button class="btn btn-secondary" onclick="closeProjectModal()" data-i18n="common.cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="saveProject()" data-i18n="common.save">Save</button>
             </div>
         </div>
     </div>
@@ -1275,8 +1353,231 @@
         let currentProject = null;
         let draggedItem = null;
         let draggedProject = null;
+        let projectDropTarget = null;
         let currentUser = null;
         let isAdmin = false;
+        let currentLanguage = 'en';
+
+        const STRINGS = {
+            en: {
+                'app.title': 'GTD Dashboard',
+                'login.title': 'GTD Login',
+                'login.username': 'Username',
+                'login.password': 'Password',
+                'login.submit': 'Login',
+                'login.failed': 'Login failed. Please try again.',
+                'passwordSetup.title': 'Set Your Password',
+                'passwordSetup.password': 'Choose Password',
+                'passwordSetup.confirm': 'Confirm Password',
+                'passwordSetup.submit': 'Set Password',
+                'passwordSetup.mismatch': 'Passwords do not match',
+                'passwordSetup.short': 'Password must be at least 4 characters',
+                'passwordSetup.failed': 'Failed to set password. Please try again.',
+                'pane.inbox': '📥 Inbox',
+                'pane.calendar': '📅 Calendar',
+                'pane.nextActions': '⚡ Next Actions',
+                'pane.account': '👤 Account',
+                'pane.projects': '🗂️ Projects',
+                'pane.someday': '💭 Someday',
+                'pane.time': '⏰ Time',
+                'quickCapture.placeholder': 'Quick capture...',
+                'quickCapture.deadline': 'Deadline',
+                'quickCapture.add': 'Add',
+                'account.loggedInAs': 'Logged in as',
+                'account.stats': 'Stats',
+                'account.adminPanel': 'Admin Panel',
+                'account.logout': 'Logout',
+                'account.deleteDone': 'Delete Done Items',
+                'stats.totalItemsLabel': 'Total Items',
+                'stats.doneLabel': 'Done',
+                'stats.projectsLabel': 'Projects',
+                'stats.scheduledLabel': 'Scheduled',
+                'projects.new': '+ New Project',
+                'projects.selectHint': 'Select a project to view its items',
+                'projects.none': 'No projects. Click "+ New Project" to create one.',
+                'projects.noneAvailable': 'No projects available. Create a project first.',
+                'projects.select': 'Select Project',
+                'projects.newTitle': 'New Project',
+                'projects.editTitle': 'Edit Project',
+                'projects.name': 'Name',
+                'projects.outcome': 'Desired Outcome',
+                'projects.noItems': 'No items in this project',
+                'calendar.empty': 'No scheduled items',
+                'next.empty': 'No next actions',
+                'admin.title': 'Admin Panel',
+                'admin.users': 'Users',
+                'admin.createUser': 'Create New User',
+                'admin.username': 'Username',
+                'admin.create': 'Create User',
+                'admin.passwordHint': 'New users will be prompted to set their password on first login',
+                'admin.createFailed': 'Failed to create user.',
+                'admin.badge': 'ADMIN',
+                'admin.resetPassword': 'Reset Password',
+                'context.moveInbox': '📥 Move to Inbox',
+                'context.moveSomeday': '💭 Move to Someday',
+                'context.moveProject': '📁 Move to Project',
+                'item.editTitle': 'Edit Item',
+                'item.title': 'Title',
+                'item.notes': 'Notes',
+                'item.dueDate': 'Due Date',
+                'item.startTime': 'Start Time',
+                'item.deadline': 'Deadline',
+                'item.project': 'Project',
+                'item.deadlineFlag': ' (D)',
+                'item.none': 'None',
+                'common.close': 'Close',
+                'common.cancel': 'Cancel',
+                'common.save': 'Save',
+                'common.delete': 'Delete',
+                'alerts.logoutConfirm': 'Logout?',
+                'alerts.noDoneItems': 'No done items to delete.',
+                'alerts.deleteDoneConfirm': 'Delete {count} done item(s)? This cannot be undone.',
+                'alerts.deleteDoneSuccess': 'Deleted {count} done item(s).',
+                'alerts.deleteDoneFailed': 'Failed to delete some items. Please try again.',
+                'alerts.resetPasswordConfirm': 'Reset password for "{username}"? They will be prompted to set a new password on next login.',
+                'alerts.resetPasswordFailed': 'Failed to reset password: {message}',
+                'alerts.resetPasswordFailedGeneric': 'Failed to reset password.',
+                'alerts.deleteUserConfirm': 'Delete user "{username}"? This will also delete their data.',
+                'alerts.deleteUserFailed': 'Failed to delete user.',
+                'alerts.deleteItemConfirm': 'Delete this item?',
+                'alerts.deleteProjectConfirm': 'Delete this project? Items will be moved to inbox.',
+                'date.today': 'Today'
+            },
+            es: {
+                'app.title': 'Panel GTD',
+                'login.title': 'Acceso GTD',
+                'login.username': 'Usuario',
+                'login.password': 'Contrasena',
+                'login.submit': 'Entrar',
+                'login.failed': 'Error de inicio de sesion. Intentalo de nuevo.',
+                'passwordSetup.title': 'Configura tu contrasena',
+                'passwordSetup.password': 'Elige contrasena',
+                'passwordSetup.confirm': 'Confirmar contrasena',
+                'passwordSetup.submit': 'Guardar contrasena',
+                'passwordSetup.mismatch': 'Las contrasenas no coinciden',
+                'passwordSetup.short': 'La contrasena debe tener al menos 4 caracteres',
+                'passwordSetup.failed': 'No se pudo guardar la contrasena. Intentalo de nuevo.',
+                'pane.inbox': '📥 Bandeja de entrada',
+                'pane.calendar': '📅 Calendario',
+                'pane.nextActions': '⚡ Proximas acciones',
+                'pane.account': '👤 Cuenta',
+                'pane.projects': '🗂️ Proyectos',
+                'pane.someday': '💭 Algún dia',
+                'pane.time': '⏰ Tiempo',
+                'quickCapture.placeholder': 'Captura rapida...',
+                'quickCapture.deadline': 'Plazo',
+                'quickCapture.add': 'Agregar',
+                'account.loggedInAs': 'Sesion iniciada como',
+                'account.stats': 'Estadisticas',
+                'account.adminPanel': 'Panel de admin',
+                'account.logout': 'Salir',
+                'account.deleteDone': 'Eliminar completados',
+                'stats.totalItemsLabel': 'Total de items',
+                'stats.doneLabel': 'Hechos',
+                'stats.projectsLabel': 'Proyectos',
+                'stats.scheduledLabel': 'Programados',
+                'projects.new': '+ Nuevo proyecto',
+                'projects.selectHint': 'Selecciona un proyecto para ver sus items',
+                'projects.none': 'No hay proyectos. Pulsa "+ Nuevo proyecto" para crear uno.',
+                'projects.noneAvailable': 'No hay proyectos disponibles. Crea uno primero.',
+                'projects.select': 'Seleccionar proyecto',
+                'projects.newTitle': 'Nuevo proyecto',
+                'projects.editTitle': 'Editar proyecto',
+                'projects.name': 'Nombre',
+                'projects.outcome': 'Resultado deseado',
+                'projects.noItems': 'No hay items en este proyecto',
+                'calendar.empty': 'No hay elementos programados',
+                'next.empty': 'No hay proximas acciones',
+                'admin.title': 'Panel de admin',
+                'admin.users': 'Usuarios',
+                'admin.createUser': 'Crear usuario',
+                'admin.username': 'Usuario',
+                'admin.create': 'Crear',
+                'admin.passwordHint': 'Los usuarios nuevos deberan configurar su contrasena en el primer acceso',
+                'admin.createFailed': 'No se pudo crear el usuario.',
+                'admin.badge': 'ADMIN',
+                'admin.resetPassword': 'Restablecer contrasena',
+                'context.moveInbox': '📥 Mover a bandeja',
+                'context.moveSomeday': '💭 Mover a algun dia',
+                'context.moveProject': '📁 Mover a proyecto',
+                'item.editTitle': 'Editar item',
+                'item.title': 'Titulo',
+                'item.notes': 'Notas',
+                'item.dueDate': 'Fecha limite',
+                'item.startTime': 'Hora de inicio',
+                'item.deadline': 'Plazo',
+                'item.project': 'Proyecto',
+                'item.deadlineFlag': ' (P)',
+                'item.none': 'Ninguno',
+                'common.close': 'Cerrar',
+                'common.cancel': 'Cancelar',
+                'common.save': 'Guardar',
+                'common.delete': 'Eliminar',
+                'alerts.logoutConfirm': 'Salir?',
+                'alerts.noDoneItems': 'No hay items completados para eliminar.',
+                'alerts.deleteDoneConfirm': 'Eliminar {count} item(s) completado(s)? Esto no se puede deshacer.',
+                'alerts.deleteDoneSuccess': 'Se eliminaron {count} item(s) completado(s).',
+                'alerts.deleteDoneFailed': 'No se pudieron eliminar algunos items. Intentalo de nuevo.',
+                'alerts.resetPasswordConfirm': 'Restablecer contrasena de "{username}"? Se le pedira crear una nueva en el proximo acceso.',
+                'alerts.resetPasswordFailed': 'No se pudo restablecer la contrasena: {message}',
+                'alerts.resetPasswordFailedGeneric': 'No se pudo restablecer la contrasena.',
+                'alerts.deleteUserConfirm': 'Eliminar al usuario "{username}"? Esto tambien eliminara sus datos.',
+                'alerts.deleteUserFailed': 'No se pudo eliminar el usuario.',
+                'alerts.deleteItemConfirm': 'Eliminar este item?',
+                'alerts.deleteProjectConfirm': 'Eliminar este proyecto? Los items pasaran a la bandeja.',
+                'date.today': 'Hoy'
+            }
+        };
+
+        function t(key, vars = {}) {
+            const dictionary = STRINGS[currentLanguage] || STRINGS.en;
+            let text = dictionary[key] || STRINGS.en[key] || key;
+            Object.keys(vars).forEach((k) => {
+                text = text.replaceAll(`{${k}}`, vars[k]);
+            });
+            return text;
+        }
+
+        function applyTranslations() {
+            document.querySelectorAll('[data-i18n]').forEach((el) => {
+                const key = el.getAttribute('data-i18n');
+                const value = t(key);
+                if (value) {
+                    el.textContent = value;
+                }
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                const value = t(key);
+                if (value) {
+                    el.setAttribute('placeholder', value);
+                }
+            });
+            document.title = t('app.title');
+            document.documentElement.lang = currentLanguage;
+        }
+
+        function setLanguage(lang) {
+            currentLanguage = STRINGS[lang] ? lang : 'en';
+            localStorage.setItem('lang', currentLanguage);
+            applyTranslations();
+            if (document.getElementById('appContent').classList.contains('show')) {
+                render();
+            }
+            if (isAdmin && document.getElementById('adminPanel').classList.contains('show')) {
+                loadUsers();
+            }
+        }
+
+        function setTheme(theme) {
+            document.body.dataset.theme = theme;
+            localStorage.setItem('theme', theme);
+        }
+
+        const savedTheme = localStorage.getItem('theme') || 'slate';
+        const savedLanguage = localStorage.getItem('lang') || 'en';
+        setTheme(savedTheme);
+        setLanguage(savedLanguage);
         
         // Check session on load
         async function checkSession() {
@@ -1336,7 +1637,7 @@
                     document.getElementById('loginError').textContent = result.message;
                 }
             } catch (error) {
-                document.getElementById('loginError').textContent = 'Login failed. Please try again.';
+                document.getElementById('loginError').textContent = t('login.failed');
             }
         }
         
@@ -1346,12 +1647,12 @@
             const confirm = document.getElementById('setupPasswordConfirm').value;
             
             if (password !== confirm) {
-                document.getElementById('setupError').textContent = 'Passwords do not match';
+                document.getElementById('setupError').textContent = t('passwordSetup.mismatch');
                 return;
             }
             
             if (password.length < 4) {
-                document.getElementById('setupError').textContent = 'Password must be at least 4 characters';
+                document.getElementById('setupError').textContent = t('passwordSetup.short');
                 return;
             }
             
@@ -1378,12 +1679,12 @@
                     document.getElementById('setupError').textContent = result.message;
                 }
             } catch (error) {
-                document.getElementById('setupError').textContent = 'Failed to set password. Please try again.';
+                document.getElementById('setupError').textContent = t('passwordSetup.failed');
             }
         }
         
         async function logout() {
-            if (!confirm('Logout?')) return;
+            if (!confirm(t('alerts.logoutConfirm'))) return;
             
             try {
                 await fetch('/api/logout', { method: 'POST' });
@@ -1397,11 +1698,11 @@
             const doneItems = data.items.filter(i => i.done);
             
             if (doneItems.length === 0) {
-                alert('No done items to delete.');
+                alert(t('alerts.noDoneItems'));
                 return;
             }
             
-            if (!confirm(`Delete ${doneItems.length} done item(s)? This cannot be undone.`)) return;
+            if (!confirm(t('alerts.deleteDoneConfirm', { count: doneItems.length }))) return;
             
             try {
                 // Delete each done item
@@ -1411,10 +1712,10 @@
                 
                 // Reload data
                 await loadData();
-                alert(`Deleted ${doneItems.length} done item(s).`);
+                alert(t('alerts.deleteDoneSuccess', { count: doneItems.length }));
             } catch (error) {
                 console.error('Failed to delete done items:', error);
-                alert('Failed to delete some items. Please try again.');
+                alert(t('alerts.deleteDoneFailed'));
             }
         }
         
@@ -1438,12 +1739,12 @@
                     <div class="user-item">
                         <div>
                             <strong>${user.username}</strong>
-                            ${user.isAdmin ? '<span class="user-badge">ADMIN</span>' : ''}
+                            ${user.isAdmin ? `<span class="user-badge">${t('admin.badge')}</span>` : ''}
                         </div>
                         <div style="display: flex; gap: 8px;">
                             ${user.username !== 'admin' ? 
-                                `<button class="delete-user-btn" onclick="resetPassword('${user.username}')" style="background: #ffc107; color: #000;">Reset Password</button>
-                                <button class="delete-user-btn" onclick="deleteUser('${user.username}')">Delete</button>` : 
+                                `<button class="delete-user-btn btn-warning" onclick="resetPassword('${user.username}')">${t('admin.resetPassword')}</button>
+                                <button class="delete-user-btn" onclick="deleteUser('${user.username}')">${t('common.delete')}</button>` : 
                                 ''}
                         </div>
                     </div>
@@ -1478,12 +1779,12 @@
                     document.getElementById('createUserError').textContent = result.message;
                 }
             } catch (error) {
-                document.getElementById('createUserError').textContent = 'Failed to create user';
+                document.getElementById('createUserError').textContent = t('admin.createFailed');
             }
         }
         
         async function resetPassword(username) {
-            if (!confirm(`Reset password for "${username}"? They will be prompted to set a new password on next login.`)) return;
+            if (!confirm(t('alerts.resetPasswordConfirm', { username }))) return;
             
             try {
                 const response = await fetch('/api/admin/reset-password', {
@@ -1497,15 +1798,15 @@
                 if (result.success) {
                     alert(result.message);
                 } else {
-                    alert('Failed to reset password: ' + result.message);
+                    alert(t('alerts.resetPasswordFailed', { message: result.message }));
                 }
             } catch (error) {
-                alert('Failed to reset password');
+                alert(t('alerts.resetPasswordFailedGeneric'));
             }
         }
         
         async function deleteUser(username) {
-            if (!confirm(`Delete user "${username}"? This will also delete their data.`)) return;
+            if (!confirm(t('alerts.deleteUserConfirm', { username }))) return;
             
             try {
                 const response = await fetch('/api/admin/delete-user', {
@@ -1523,55 +1824,14 @@
                     alert(result.message);
                 }
             } catch (error) {
-                alert('Failed to delete user');
+                alert(t('alerts.deleteUserFailed'));
             }
         }
         
         async function loadData() {
             const response = await fetch('/api/data');
             data = await response.json();
-            await cleanupInvalidItems();
             render();
-        }
-        
-        async function cleanupInvalidItems() {
-            const validStatuses = ['inbox', 'someday', 'projects'];
-            const validProjectIds = new Set(data.projects.map(p => p.id));
-            let modified = false;
-            
-            data.items.forEach(item => {
-                // Check if status is invalid
-                if (!validStatuses.includes(item.status)) {
-                    console.log(`Invalid status "${item.status}" for item ${item.id}, sending to inbox`);
-                    item.status = 'inbox';
-                    item.projectId = null;
-                    modified = true;
-                }
-                // Check if item has projectId but status is not 'projects'
-                else if (item.projectId && item.status !== 'projects') {
-                    console.log(`Item ${item.id} has projectId but status is "${item.status}", sending to inbox`);
-                    item.status = 'inbox';
-                    item.projectId = null;
-                    modified = true;
-                }
-                // Check if status is 'projects' but has invalid/missing projectId
-                else if (item.status === 'projects' && (!item.projectId || !validProjectIds.has(item.projectId))) {
-                    console.log(`Item ${item.id} has invalid projectId ${item.projectId}, sending to inbox`);
-                    item.status = 'inbox';
-                    item.projectId = null;
-                    modified = true;
-                }
-            });
-            
-            // Save cleaned data back to server if modifications were made
-            if (modified) {
-                console.log('Invalid items found, saving cleaned data...');
-                await fetch('/api/data', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-            }
         }
         
         function getInboxItems() {
@@ -1605,7 +1865,6 @@
         function getNextActions() {
             const candidates = [];
             const todayStr = getTodayDateString();
-            console.log('Today string for comparison:', todayStr, 'Full date object:', new Date());
             
             // Step 1: Get first non-done item from each project
             data.projects.forEach(project => {
@@ -1623,7 +1882,6 @@
             data.items.forEach(item => {
                 if (item.dueDatetime && !item.done && !candidateIds.has(item.id)) {
                     const itemDate = item.dueDatetime.includes('T') ? item.dueDatetime.split('T')[0] : item.dueDatetime;
-                    console.log('Item', item.title, 'date:', itemDate, 'equals today?', itemDate === todayStr, 'is deadline?', item.deadline);
                     // Include if it's today's date OR if it's a deadline (can be done in advance)
                     if (itemDate === todayStr || item.deadline) {
                         const project = item.projectId ? data.projects.find(p => p.id === item.projectId) : null;
@@ -1632,7 +1890,6 @@
                 }
             });
             
-            console.log('Candidates before filtering:', candidates.length);
             
             // Step 3: Filter candidates to only include items with no date OR today's date OR future deadlines
             const nextActions = candidates.filter(item => {
@@ -1641,18 +1898,16 @@
                 const isToday = itemDate === todayStr;
                 const isDeadline = item.deadline;
                 const matches = isToday || isDeadline;
-                console.log('Filtering', item.title, 'itemDate:', itemDate, 'is today?', isToday, 'is deadline?', isDeadline, 'included?', matches);
                 return matches; // Include if date is today OR it's a deadline
             });
             
-            console.log('Next actions after filtering:', nextActions.length);
             return nextActions;
         }
         
         function formatDate(dateStr) {
             if (!dateStr) return '';
             const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return date.toLocaleDateString(currentLanguage, { month: 'short', day: 'numeric' });
         }
         
         function renderItem(item, showCheckbox = true, draggable = true) {
@@ -1673,16 +1928,15 @@
                 const itemDate = item.dueDatetime.includes('T') ? item.dueDatetime.split('T')[0] : item.dueDatetime;
                 const isToday = itemDate === todayStr;
                 
-                console.log('Rendering item', item.title, '- dueDatetime:', item.dueDatetime, 'itemDate:', itemDate, 'todayStr:', todayStr, 'isToday:', isToday);
                 
-                titleHtml += '<span style="color: #6c757d; font-size: 11px; margin-right: 6px;">';
+                titleHtml += '<span style="color: var(--muted-2); font-size: 11px; margin-right: 6px;">';
                 if (isToday) {
-                    titleHtml += '<span style="color: #ff8c00;">Today</span>';
+                    titleHtml += '<span style="color: var(--highlight);">' + t('date.today') + '</span>';
                 } else {
                     titleHtml += formatDate(item.dueDatetime);
                 }
                 if (item.startTime) titleHtml += ' ' + item.startTime;
-                if (item.deadline) titleHtml += ' (D)';
+                if (item.deadline) titleHtml += t('item.deadlineFlag');
                 titleHtml += '</span>';
             }
             titleHtml += item.title;
@@ -1705,12 +1959,12 @@
             // Calendar
             const calItems = getCalendarItems();
             document.getElementById('calendar-content').innerHTML = 
-                calItems.length ? calItems.map(i => renderItem(i, true, false)).join('') : '<div class="empty-state">No scheduled items</div>';
+                calItems.length ? calItems.map(i => renderItem(i, true, false)).join('') : '<div class="empty-state">' + t('calendar.empty') + '</div>';
             
             // Next Actions
             const nextActions = getNextActions();
             document.getElementById('next-content').innerHTML = 
-                nextActions.length ? nextActions.map(i => renderItem(i, true, false)).join('') : '<div class="empty-state">No next actions</div>';
+                nextActions.length ? nextActions.map(i => renderItem(i, true, false)).join('') : '<div class="empty-state">' + t('next.empty') + '</div>';
             
             // Someday
             document.getElementById('someday-content').innerHTML = 
@@ -1721,7 +1975,7 @@
             const sortedProjects = data.projects.sort((a, b) => (a.position || 0) - (b.position || 0));
             
             if (sortedProjects.length === 0) {
-                projectsListHtml = '<div class="empty-state">No projects. Click "+ New Project" to create one.</div>';
+                projectsListHtml = '<div class="empty-state">' + t('projects.none') + '</div>';
             } else {
                 sortedProjects.forEach(project => {
                     const itemCount = data.items.filter(i => i.projectId === project.id && i.status === 'projects' && !i.done).length;
@@ -1730,7 +1984,7 @@
                     projectsListHtml += '<div class="project-list-item' + (isActive ? ' active' : '') + '" data-project-id="' + project.id + '" draggable="true">';
                     projectsListHtml += '<span class="project-chevron" draggable="false">' + chevron + '</span>';
                     projectsListHtml += '<span class="project-list-item-name" draggable="false">' + project.name + '</span>';
-                    projectsListHtml += '<span style="font-size: 11px; color: #6c757d;" draggable="false">' + itemCount + '</span>';
+                    projectsListHtml += '<span style="font-size: 11px; color: var(--muted-2);" draggable="false">' + itemCount + '</span>';
                     projectsListHtml += '</div>';
                 });
             }
@@ -1760,10 +2014,14 @@
                 el.addEventListener('dragleave', handleProjectDragLeave);
                 el.addEventListener('drop', handleProjectDrop);
             });
+
+            const projectsList = document.getElementById('projects-list');
+            projectsList.addEventListener('dragover', handleProjectListDragOver);
+            projectsList.addEventListener('drop', handleProjectDrop);
             
             // Update project selector in edit modal
             const projectSelect = document.getElementById('editProject');
-            projectSelect.innerHTML = '<option value="">None</option>' + 
+            projectSelect.innerHTML = '<option value="">' + t('item.none') + '</option>' + 
                 data.projects.map(p => '<option value="' + p.id + '">' + p.name + '</option>').join('');
             
             // Attach drag listeners
@@ -1823,7 +2081,7 @@
             
             let detailHtml = '';
             if (projectItems.length === 0) {
-                detailHtml = '<div class="empty-state">No items in this project</div>';
+                detailHtml = '<div class="empty-state">' + t('projects.noItems') + '</div>';
             } else {
                 detailHtml = projectItems.map(i => renderItem(i)).join('');
             }
@@ -1888,6 +2146,7 @@
             }
             document.querySelectorAll('.project-pane-insert-indicator, .project-list-insert-indicator').forEach(el => el.remove());
             draggedProject = null;
+            projectDropTarget = null;
         }
         
         function handleProjectDragEnter(e) {
@@ -1918,13 +2177,33 @@
             const insertBefore = mouseY < midpoint;
             
             // Store drop information
-            targetItem._closestProjectId = targetProjectId;
-            targetItem._insertBefore = insertBefore;
+            projectDropTarget = { closestProjectId: targetProjectId, insertBefore };
             
             // Show indicator on the current target item
             const indicator = document.createElement('div');
             indicator.className = 'project-list-insert-indicator ' + (insertBefore ? 'before' : 'after');
             targetItem.appendChild(indicator);
+        }
+
+        function handleProjectListDragOver(e) {
+            if (!draggedProject) return;
+            if (e.target.closest('.project-list-item')) return;
+            e.preventDefault();
+
+            const list = e.currentTarget;
+            const items = list.querySelectorAll('.project-list-item');
+            if (!items.length) return;
+
+            const lastItem = items[items.length - 1];
+            const lastProjectId = parseInt(lastItem.dataset.projectId);
+            if (lastProjectId === draggedProject) return;
+
+            document.querySelectorAll('.project-pane-insert-indicator, .project-list-insert-indicator').forEach(el => el.remove());
+            projectDropTarget = { closestProjectId: lastProjectId, insertBefore: false };
+
+            const indicator = document.createElement('div');
+            indicator.className = 'project-list-insert-indicator after';
+            lastItem.appendChild(indicator);
         }
         
         async function handleProjectDrop(e) {
@@ -1934,17 +2213,15 @@
             document.querySelectorAll('.project-pane-insert-indicator, .project-list-insert-indicator').forEach(el => el.remove());
             
             if (!draggedProject) return;
-            
-            const target = e.currentTarget;
-            if (!target._closestProjectId) return;
+            if (!projectDropTarget) return;
             
             const projects = data.projects.sort((a, b) => (a.position || 0) - (b.position || 0));
             const oldIndex = projects.findIndex(p => p.id === draggedProject);
-            let targetIndex = projects.findIndex(p => p.id === target._closestProjectId);
+            let targetIndex = projects.findIndex(p => p.id === projectDropTarget.closestProjectId);
             
             if (oldIndex === -1 || targetIndex === -1) return;
             
-            if (!target._insertBefore) {
+            if (!projectDropTarget.insertBefore) {
                 targetIndex++;
             }
             
@@ -1969,6 +2246,8 @@
             
             // Refresh the project list immediately
             render();
+
+            projectDropTarget = null;
             
             // Send update to server in background
             const updates = reordered.map((project, index) => ({
@@ -2327,7 +2606,7 @@
         }
         
         async function deleteItem() {
-            if (!currentItem || !confirm('Delete this item?')) return;
+            if (!currentItem || !confirm(t('alerts.deleteItemConfirm'))) return;
             
             await fetch('/api/items/' + currentItem.id, {
                 method: 'DELETE'
@@ -2380,7 +2659,6 @@
         async function handleContextMenuAction(action) {
             if (!contextMenuItem) return;
             
-            console.log('Context menu action:', action, 'Item:', contextMenuItem);
             
             const itemId = contextMenuItem.id; // Save the ID before hiding the menu
             
@@ -2391,7 +2669,6 @@
                 await moveItemTo(itemId, 'someday');
                 hideContextMenu();
             } else if (action === 'move-project') {
-                console.log('About to show project select modal');
                 hideContextMenu();
                 showProjectSelectModal(itemId);
             }
@@ -2413,14 +2690,10 @@
         }
         
         function showProjectSelectModal(itemId) {
-            console.log('showProjectSelectModal called with itemId:', itemId);
             const item = data.items.find(i => i.id === itemId);
             if (!item) {
-                console.log('Item not found!');
                 return;
             }
-            
-            console.log('Projects:', data.projects);
             const projectList = document.getElementById('projectSelectList');
             projectList.innerHTML = data.projects.map(project => 
                 '<div class="project-select-item" onclick="selectProjectAndMove(' + itemId + ', ' + project.id + ')">' +
@@ -2429,10 +2702,9 @@
             ).join('');
             
             if (data.projects.length === 0) {
-                projectList.innerHTML = '<div style="color: #adb5bd; text-align: center; padding: 20px;">No projects available. Create a project first.</div>';
+                projectList.innerHTML = '<div style="color: var(--muted); text-align: center; padding: 20px;">' + t('projects.noneAvailable') + '</div>';
             }
             
-            console.log('Adding show class to modal');
             document.getElementById('projectSelectModal').classList.add('show');
         }
         
@@ -2447,7 +2719,7 @@
         
         function newProject() {
             currentProject = null;
-            document.getElementById('projectModalTitle').textContent = 'New Project';
+            document.getElementById('projectModalTitle').textContent = t('projects.newTitle');
             document.getElementById('projectName').value = '';
             document.getElementById('projectOutcome').value = '';
             document.getElementById('deleteProjectBtn').style.display = 'none';
@@ -2458,7 +2730,7 @@
             currentProject = data.projects.find(p => p.id === projectId);
             if (!currentProject) return;
             
-            document.getElementById('projectModalTitle').textContent = 'Edit Project';
+            document.getElementById('projectModalTitle').textContent = t('projects.editTitle');
             document.getElementById('projectName').value = currentProject.name;
             document.getElementById('projectOutcome').value = currentProject.outcome || '';
             document.getElementById('deleteProjectBtn').style.display = 'inline-block';
@@ -2499,7 +2771,7 @@
         }
         
         async function deleteProject() {
-            if (!currentProject || !confirm('Delete this project? Items will be moved to inbox.')) return;
+            if (!currentProject || !confirm(t('alerts.deleteProjectConfirm'))) return;
             
             await fetch('/api/projects/' + currentProject.id, {
                 method: 'DELETE'
