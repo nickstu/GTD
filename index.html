@@ -1992,6 +1992,15 @@
             }
             
             document.getElementById('projects-list').innerHTML = projectsListHtml;
+
+            const projectDetail = document.getElementById('projects-detail');
+            if (selectedProjectId && data.projects.some(p => p.id === selectedProjectId)) {
+                selectProject(selectedProjectId);
+            } else if (selectedProjectId) {
+                selectedProjectId = null;
+                projectDetail.innerHTML = '<div class="empty-state">' + t('projects.selectHint') + '</div>';
+                projectDetail.dataset.projectId = '';
+            }
             
             // Attach project interaction listeners
             document.querySelectorAll('.project-list-item').forEach(el => {
