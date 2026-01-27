@@ -2454,8 +2454,8 @@
                                 }
                             });
                             
-                            // Refresh the project view immediately
-                            selectProject(selectedProjectId);
+                            // Refresh all panes immediately
+                            render();
                             
                             // Send update to server in background
                             const updates = reordered.map((item, index) => ({
