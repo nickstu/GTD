@@ -1983,7 +1983,7 @@
                 sortedProjects.forEach(project => {
                     const itemCount = data.items.filter(i => i.projectId === project.id && i.status === 'projects' && !i.done).length;
                     const isActive = selectedProjectId === project.id;
-                    const chevron = isActive ? '▼' : '▶';
+                    const chevron = isActive ? '▾' : '▸';
                     projectsListHtml += '<div class="project-list-item' + (isActive ? ' active' : '') + '" data-project-id="' + project.id + '" draggable="true">';
                     projectsListHtml += '<span class="project-chevron" draggable="false">' + chevron + '</span>';
                     projectsListHtml += '<span class="project-list-item-name" draggable="false">' + project.name + '</span>';
@@ -2082,7 +2082,12 @@
             
             // Update active state in sidebar
             document.querySelectorAll('.project-list-item').forEach(el => {
-                el.classList.toggle('active', parseInt(el.dataset.projectId) === projectId);
+                const isActive = parseInt(el.dataset.projectId) === projectId;
+                el.classList.toggle('active', isActive);
+                const chevron = el.querySelector('.project-chevron');
+                if (chevron) {
+                    chevron.textContent = isActive ? '▾' : '▸';
+                }
             });
             
             // Render project items in detail panel
