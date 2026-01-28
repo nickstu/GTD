@@ -1280,7 +1280,10 @@
 
             <div class="right-column">
                 <div class="pane" id="time-pane">
-                    <div class="pane-header" data-i18n="pane.time">⏰ Time</div>
+                    <div class="pane-header">
+                        <span data-i18n="pane.time">⏰ Time</span>
+                        <button class="btn-new-project" onclick="clearTimeNotes()" data-i18n="time.clear">Clear</button>
+                    </div>
                     <div class="pane-content" id="time-content"></div>
                 </div>
 
@@ -1453,6 +1456,8 @@
                 'account.adminPanel': 'Admin Panel',
                 'account.logout': 'Logout',
                 'account.deleteDone': 'Delete Done Items',
+                'time.clear': 'Clear',
+                'time.clearConfirm': 'Clear all time items?',
                 'projects.new': '+ New Project',
                 'projects.selectHint': 'Select a project to view its items',
                 'projects.none': 'No projects. Click "+ New Project" to create one.',
@@ -1532,6 +1537,8 @@
                 'account.adminPanel': 'Panel de admin',
                 'account.logout': 'Salir',
                 'account.deleteDone': 'Eliminar completados',
+                'time.clear': 'Limpiar',
+                'time.clearConfirm': 'Eliminar todos los items del horario?',
                 'projects.new': '+ Nuevo proyecto',
                 'projects.selectHint': 'Selecciona un proyecto para ver sus items',
                 'projects.none': 'No hay proyectos. Pulsa "+ Nuevo proyecto" para crear uno.',
@@ -1634,6 +1641,51 @@
         const savedLanguage = localStorage.getItem('lang') || 'en';
         setTheme(savedTheme);
         setLanguage(savedLanguage);
+
+        function timeNotesKey() {
+            return currentUser ? `timeNotes:${currentUser}` : 'timeNotes';
+        }
+
+        function loadTimeNotes() {
+            if (!currentUser) return;
+            const raw = localStorage.getItem(timeNotesKey());
+            if (!raw) {
+                timeNotes = [];
+                nextTimeNoteId = 1;
+                return;
+            }
+            try {
+                const parsed = JSON.parse(raw);
+                const notes = Array.isArray(parsed.notes) ? parsed.notes : [];
+                timeNotes = notes.map(note => ({
+                    id: Number(note.id),
+                    title: String(note.title || ''),
+                    slots: Array.isArray(note.slots) ? note.slots : []
+                })).filter(note => Number.isInteger(note.id));
+                if (Number.isInteger(parsed.nextId)) {
+                    nextTimeNoteId = parsed.nextId;
+                } else {
+                    const maxId = timeNotes.reduce((max, note) => Math.max(max, note.id), 0);
+                    nextTimeNoteId = maxId + 1;
+                }
+            } catch (error) {
+                timeNotes = [];
+                nextTimeNoteId = 1;
+            }
+        }
+
+        function saveTimeNotes() {
+            if (!currentUser) return;
+            const payload = {
+                notes: timeNotes.map(note => ({
+                    id: note.id,
+                    title: note.title,
+                    slots: Array.isArray(note.slots) ? note.slots : []
+                })),
+                nextId: nextTimeNoteId
+            };
+            localStorage.setItem(timeNotesKey(), JSON.stringify(payload));
+        }
         
         // Check session on load
         async function checkSession() {
@@ -1649,6 +1701,7 @@
                     }
                     document.getElementById('loginModal').style.display = 'none';
                     document.getElementById('appContent').classList.add('show');
+                    loadTimeNotes();
                     await loadData();
                 }
             } catch (error) {
@@ -1687,6 +1740,7 @@
                         document.getElementById('loginModal').style.display = 'none';
                         document.getElementById('appContent').classList.add('show');
                         document.getElementById('loginError').textContent = '';
+                        loadTimeNotes();
                         await loadData();
                     }
                 } else {
@@ -1730,6 +1784,7 @@
                     }
                     document.getElementById('passwordSetupModal').style.display = 'none';
                     document.getElementById('appContent').classList.add('show');
+                    loadTimeNotes();
                     await loadData();
                 } else {
                     document.getElementById('setupError').textContent = result.message;
@@ -2137,26 +2192,14 @@
             for (let hour = 8; hour <= 20; hour++) {
                 const displayHour = hour % 12 === 0 ? 12 : hour % 12;
                 const suffix = hour < 12 ? 'AM' : 'PM';
-                const slotItems = [];
-                data.items.forEach(item => {
-                    if ((item.timeSlots || []).includes(hour)) {
-                        slotItems.push({
-                            kind: 'item',
-                            id: item.id,
-                            title: item.title
-                        });
-                    }
-                });
-                timeNotes.forEach(note => {
-                    if ((note.slots || []).includes(hour)) {
-                        slotItems.push({
-                            kind: 'note',
-                            id: note.id,
-                            title: note.title,
-                            editing: note.editing
-                        });
-                    }
-                });
+                const slotItems = timeNotes
+                    .filter(note => (note.slots || []).includes(hour))
+                    .map(note => ({
+                        kind: 'note',
+                        id: note.id,
+                        title: note.title,
+                        editing: note.editing
+                    }));
                 const itemsHtml = slotItems
                     .map(item => {
                         const text = item.kind === 'note' && item.editing
@@ -2225,39 +2268,16 @@
             if (!Number.isInteger(hour)) return;
 
             if (draggedTimeItem) {
-                if (draggedTimeItem.kind === 'note') {
-                    const note = timeNotes.find(n => n.id === draggedTimeItem.id);
-                    if (!note) return;
+                const note = timeNotes.find(n => n.id === draggedTimeItem.id);
+                if (!note) return;
 
-                    const slots = Array.isArray(note.slots) ? note.slots : [];
-                    const alreadyInSlot = slots.includes(hour);
-                    if (alreadyInSlot && (!draggedTimeItem.copy || draggedTimeItem.hour === hour)) {
-                        return;
-                    }
-
-                    let updated = slots.slice();
-                    if (!draggedTimeItem.copy && draggedTimeItem.hour !== hour) {
-                        updated = updated.filter(h => h !== draggedTimeItem.hour);
-                    }
-                    if (!updated.includes(hour)) {
-                        updated.push(hour);
-                    }
-                    updated.sort((a, b) => a - b);
-                    note.slots = updated;
-                    renderTimeSlots();
-                    return;
-                }
-
-                const item = data.items.find(i => i.id === draggedTimeItem.id);
-                if (!item) return;
-
-                const timeSlots = Array.isArray(item.timeSlots) ? item.timeSlots : [];
-                const alreadyInSlot = timeSlots.includes(hour);
+                const slots = Array.isArray(note.slots) ? note.slots : [];
+                const alreadyInSlot = slots.includes(hour);
                 if (alreadyInSlot && (!draggedTimeItem.copy || draggedTimeItem.hour === hour)) {
                     return;
                 }
 
-                let updated = timeSlots.slice();
+                let updated = slots.slice();
                 if (!draggedTimeItem.copy && draggedTimeItem.hour !== hour) {
                     updated = updated.filter(h => h !== draggedTimeItem.hour);
                 }
@@ -2265,37 +2285,23 @@
                     updated.push(hour);
                 }
                 updated.sort((a, b) => a - b);
-
-                item.timeSlots = updated;
+                note.slots = updated;
                 renderTimeSlots();
-                fetch('/api/items/' + item.id, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ timeSlots: updated })
-                }).catch(err => {
-                    console.error('Failed to save time slot:', err);
-                    loadData();
-                });
+                saveTimeNotes();
                 return;
             }
 
             const item = data.items.find(i => i.id === draggedItem);
             if (!item) return;
 
-            const timeSlots = Array.isArray(item.timeSlots) ? item.timeSlots : [];
-            if (!timeSlots.includes(hour)) {
-                const updated = [...timeSlots, hour].sort((a, b) => a - b);
-                item.timeSlots = updated;
-                renderTimeSlots();
-                fetch('/api/items/' + item.id, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ timeSlots: updated })
-                }).catch(err => {
-                    console.error('Failed to save time slot:', err);
-                    loadData();
-                });
-            }
+            const note = {
+                id: nextTimeNoteId++,
+                title: item.title,
+                slots: [hour]
+            };
+            timeNotes.push(note);
+            renderTimeSlots();
+            saveTimeNotes();
         }
 
         function handleTimeSlotItemDragStart(e) {
@@ -2319,44 +2325,23 @@
 
         function handleTimeSlotItemContextMenu(e) {
             e.preventDefault();
-            const kind = e.currentTarget.dataset.kind;
             const itemId = parseInt(e.currentTarget.dataset.id);
             const hour = parseInt(e.currentTarget.dataset.hour);
             if (!Number.isInteger(itemId) || !Number.isInteger(hour)) return;
 
-            if (kind === 'note') {
-                const note = timeNotes.find(n => n.id === itemId);
-                if (!note) return;
+            const note = timeNotes.find(n => n.id === itemId);
+            if (!note) return;
 
-                const slots = Array.isArray(note.slots) ? note.slots : [];
-                if (!slots.includes(hour)) return;
-                const updated = slots.filter(h => h !== hour);
-                if (updated.length) {
-                    note.slots = updated;
-                } else {
-                    timeNotes = timeNotes.filter(n => n.id !== note.id);
-                }
-                renderTimeSlots();
-                return;
+            const slots = Array.isArray(note.slots) ? note.slots : [];
+            if (!slots.includes(hour)) return;
+            const updated = slots.filter(h => h !== hour);
+            if (updated.length) {
+                note.slots = updated;
+            } else {
+                timeNotes = timeNotes.filter(n => n.id !== note.id);
             }
-
-            const item = data.items.find(i => i.id === itemId);
-            if (!item) return;
-
-            const timeSlots = Array.isArray(item.timeSlots) ? item.timeSlots : [];
-            if (!timeSlots.includes(hour)) return;
-
-            const updated = timeSlots.filter(h => h !== hour);
-            item.timeSlots = updated;
             renderTimeSlots();
-            fetch('/api/items/' + item.id, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ timeSlots: updated })
-            }).catch(err => {
-                console.error('Failed to save time slot:', err);
-                loadData();
-            });
+            saveTimeNotes();
         }
 
         function handleTimeSlotClick(e) {
@@ -2400,6 +2385,15 @@
                 note.editing = false;
             }
             renderTimeSlots();
+            saveTimeNotes();
+        }
+
+        function clearTimeNotes() {
+            if (!confirm(t('time.clearConfirm'))) return;
+            timeNotes = [];
+            nextTimeNoteId = 1;
+            renderTimeSlots();
+            saveTimeNotes();
         }
         
         let selectedProjectId = null;
