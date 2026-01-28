@@ -1090,6 +1090,17 @@
 
         .time-slot-item-text {
             padding: 0 8px;
+            width: 100%;
+        }
+
+        .time-slot-item-input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            font-size: 12px;
+            outline: none;
+            padding: 0 8px;
         }
         
         /* Mobile Styles */
@@ -1407,6 +1418,8 @@
         let draggedProject = null;
         let projectDropTarget = null;
         let draggedTimeItem = null;
+        let timeNotes = [];
+        let nextTimeNoteId = 1;
         let currentUser = null;
         let isAdmin = false;
         let currentLanguage = 'en';
@@ -2124,9 +2137,33 @@
             for (let hour = 8; hour <= 20; hour++) {
                 const displayHour = hour % 12 === 0 ? 12 : hour % 12;
                 const suffix = hour < 12 ? 'AM' : 'PM';
-                const slotItems = data.items.filter(item => (item.timeSlots || []).includes(hour));
+                const slotItems = [];
+                data.items.forEach(item => {
+                    if ((item.timeSlots || []).includes(hour)) {
+                        slotItems.push({
+                            kind: 'item',
+                            id: item.id,
+                            title: item.title
+                        });
+                    }
+                });
+                timeNotes.forEach(note => {
+                    if ((note.slots || []).includes(hour)) {
+                        slotItems.push({
+                            kind: 'note',
+                            id: note.id,
+                            title: note.title,
+                            editing: note.editing
+                        });
+                    }
+                });
                 const itemsHtml = slotItems
-                    .map(item => '<div class="time-slot-item" draggable="true" data-item-id="' + item.id + '" data-hour="' + hour + '"><div class="time-slot-item-text">' + item.title + '</div></div>')
+                    .map(item => {
+                        const text = item.kind === 'note' && item.editing
+                            ? '<input class="time-slot-item-input" type="text" data-note-id="' + item.id + '" value="' + (item.title || '') + '" placeholder="" />'
+                            : '<div class="time-slot-item-text">' + item.title + '</div>';
+                        return '<div class="time-slot-item" draggable="true" data-kind="' + item.kind + '" data-id="' + item.id + '" data-hour="' + hour + '">' + text + '</div>';
+                    })
                     .join('');
                 slots.push(
                     '<div class="time-slot" data-hour="' + hour + '">' +
@@ -2142,12 +2179,21 @@
                 slot.addEventListener('dragenter', handleTimeSlotDragEnter);
                 slot.addEventListener('dragleave', handleTimeSlotDragLeave);
                 slot.addEventListener('drop', handleTimeSlotDrop);
+                slot.addEventListener('click', handleTimeSlotClick);
             });
 
             timeContent.querySelectorAll('.time-slot-item').forEach(item => {
                 item.addEventListener('dragstart', handleTimeSlotItemDragStart);
                 item.addEventListener('dragend', handleTimeSlotItemDragEnd);
                 item.addEventListener('contextmenu', handleTimeSlotItemContextMenu);
+            });
+
+            timeContent.querySelectorAll('.time-slot-item-input').forEach(input => {
+                input.addEventListener('click', e => e.stopPropagation());
+                input.addEventListener('keydown', handleTimeSlotInputKeydown);
+                input.addEventListener('blur', handleTimeSlotInputBlur);
+                input.focus();
+                input.select();
             });
         }
 
@@ -2179,6 +2225,29 @@
             if (!Number.isInteger(hour)) return;
 
             if (draggedTimeItem) {
+                if (draggedTimeItem.kind === 'note') {
+                    const note = timeNotes.find(n => n.id === draggedTimeItem.id);
+                    if (!note) return;
+
+                    const slots = Array.isArray(note.slots) ? note.slots : [];
+                    const alreadyInSlot = slots.includes(hour);
+                    if (alreadyInSlot && (!draggedTimeItem.copy || draggedTimeItem.hour === hour)) {
+                        return;
+                    }
+
+                    let updated = slots.slice();
+                    if (!draggedTimeItem.copy && draggedTimeItem.hour !== hour) {
+                        updated = updated.filter(h => h !== draggedTimeItem.hour);
+                    }
+                    if (!updated.includes(hour)) {
+                        updated.push(hour);
+                    }
+                    updated.sort((a, b) => a - b);
+                    note.slots = updated;
+                    renderTimeSlots();
+                    return;
+                }
+
                 const item = data.items.find(i => i.id === draggedTimeItem.id);
                 if (!item) return;
 
@@ -2230,11 +2299,13 @@
         }
 
         function handleTimeSlotItemDragStart(e) {
-            const itemId = parseInt(e.currentTarget.dataset.itemId);
+            const kind = e.currentTarget.dataset.kind;
+            const itemId = parseInt(e.currentTarget.dataset.id);
             const hour = parseInt(e.currentTarget.dataset.hour);
             if (!Number.isInteger(itemId) || !Number.isInteger(hour)) return;
 
             draggedTimeItem = {
+                kind,
                 id: itemId,
                 hour,
                 copy: e.shiftKey
@@ -2248,9 +2319,26 @@
 
         function handleTimeSlotItemContextMenu(e) {
             e.preventDefault();
-            const itemId = parseInt(e.currentTarget.dataset.itemId);
+            const kind = e.currentTarget.dataset.kind;
+            const itemId = parseInt(e.currentTarget.dataset.id);
             const hour = parseInt(e.currentTarget.dataset.hour);
             if (!Number.isInteger(itemId) || !Number.isInteger(hour)) return;
+
+            if (kind === 'note') {
+                const note = timeNotes.find(n => n.id === itemId);
+                if (!note) return;
+
+                const slots = Array.isArray(note.slots) ? note.slots : [];
+                if (!slots.includes(hour)) return;
+                const updated = slots.filter(h => h !== hour);
+                if (updated.length) {
+                    note.slots = updated;
+                } else {
+                    timeNotes = timeNotes.filter(n => n.id !== note.id);
+                }
+                renderTimeSlots();
+                return;
+            }
 
             const item = data.items.find(i => i.id === itemId);
             if (!item) return;
@@ -2269,6 +2357,49 @@
                 console.error('Failed to save time slot:', err);
                 loadData();
             });
+        }
+
+        function handleTimeSlotClick(e) {
+            if (e.target.closest('.time-slot-item')) return;
+            const hour = parseInt(e.currentTarget.dataset.hour);
+            if (!Number.isInteger(hour)) return;
+
+            const note = {
+                id: nextTimeNoteId++,
+                title: '',
+                slots: [hour],
+                editing: true
+            };
+            timeNotes.push(note);
+            renderTimeSlots();
+        }
+
+        function handleTimeSlotInputKeydown(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.target.blur();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.target.value = '';
+                e.target.blur();
+            }
+        }
+
+        function handleTimeSlotInputBlur(e) {
+            const noteId = parseInt(e.target.dataset.noteId);
+            if (!Number.isInteger(noteId)) return;
+
+            const note = timeNotes.find(n => n.id === noteId);
+            if (!note) return;
+
+            const title = e.target.value.trim();
+            if (!title) {
+                timeNotes = timeNotes.filter(n => n.id !== noteId);
+            } else {
+                note.title = title;
+                note.editing = false;
+            }
+            renderTimeSlots();
         }
         
         let selectedProjectId = null;
